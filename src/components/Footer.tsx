@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzfaNep — glass footer with dynamic links from admin panel
+ * EzFameNp — glass footer with dynamic links from admin panel
  * ============================================================ */
 
 import { Mail, MessageCircle, Send, Youtube, Instagram, Facebook } from "lucide-react";

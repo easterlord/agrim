@@ -1,5 +1,5 @@
 /* ============================================================
- * EzfaNep — Default catalog & settings (used to seed Firebase
+ * EzFameNp — Default catalog & settings (used to seed Firebase
  * RTDB on first run and as an offline fallback cache).
  * ============================================================ */
 
@@ -343,7 +343,7 @@ export const DEFAULT_CATALOG: Platform[] = [
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
-  siteName: "EzfaNep",
+  siteName: "EzFameNp",
   tagline: "SMM & Game Top-Up Superstore",
   exchangeRate: DEFAULT_EXCHANGE_RATE,
   payments: {
@@ -366,7 +366,7 @@ export const DEFAULT_SETTINGS: Settings = {
     },
     esewa: {
       enabled: true,
-      accountName: "EzfaNep Store",
+      accountName: "EzFameNp Store",
       accountNumber: "9801234567",
       qrUrl: "",
       instructions:
@@ -374,7 +374,7 @@ export const DEFAULT_SETTINGS: Settings = {
     },
     khalti: {
       enabled: true,
-      accountName: "EzfaNep Store",
+      accountName: "EzFameNp Store",
       accountNumber: "9812345678",
       qrUrl: "",
       instructions:
@@ -382,7 +382,7 @@ export const DEFAULT_SETTINGS: Settings = {
     },
     bank: {
       enabled: true,
-      accountName: "EzfaNep Traders Pvt. Ltd.",
+      accountName: "EzFameNp Traders Pvt. Ltd.",
       accountNumber: "0123 4567 8901 (NIC Asia Bank)",
       qrUrl: "",
       instructions:
@@ -391,11 +391,11 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   chatbot: {
     enabled: true,
-    botName: "Ezfa AI",
+    botName: "EzFame AI",
     welcome:
-      "Namaste! I'm Ezfa AI. Ask me about prices, delivery time, payments or track your order (send your ORD-XXXXXX id).",
+      "Namaste! I'm EzFame AI. Ask me about prices, delivery time, payments or track your order (send your ORD-XXXXXX id).",
     systemPrompt:
-      "You are Ezfa AI, the friendly support assistant for EzfaNep — an SMM & game top-up store for Nepal. Answer in the user's language (English/Nepali/Hindi). Be short, helpful and factual. Use the store context provided to answer pricing, payment and order questions.",
+      "You are EzFame AI, the friendly support assistant for EzFameNp — an SMM & game top-up store for Nepal. Answer in the user's language (English/Nepali/Hindi). Be short, helpful and factual. Use the store context provided to answer pricing, payment and order questions.",
     faqs: [
       {
         id: "faq-1",
@@ -429,10 +429,10 @@ export const DEFAULT_SETTINGS: Settings = {
     model: "gpt-4o-mini",
   },
   social: {
-    telegram: "https://t.me/ezfanep_support",
+    telegram: "https://t.me/ezfamenp_support",
     whatsapp: "https://wa.me/9779812345678",
-    email: "support@ezfanep.com",
-    instagram: "https://instagram.com/ezfanep",
+    email: "support@ezfamenp.com",
+    instagram: "https://instagram.com/ezfamenp",
     facebook: "",
     youtube: "",
   },

@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzfaNep — home view: hero, category pills, configurator,
+ * EzFameNp — home view: hero, category pills, configurator,
  * live pricing, stats, features, how-it-works.
  * ============================================================ */
 

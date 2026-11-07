@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzfaNep — SPA root.
+ * EzFameNp — SPA root.
  * One Next.js route ("/") hosts the entire hash-routed app:
  *   #/            home + shop
  *   #/checkout    payment & order submission
@@ -101,7 +101,7 @@ function AppRoot() {
             className="flex flex-col items-center gap-4"
           >
             <span className="animate-spin-slow text-3xl font-extrabold text-gradient font-[family-name:var(--f-display)]">
-              EZFA
+              EZFAME
             </span>
             <span className="text-xs uppercase tracking-[0.4em] text-muted-foreground">loading</span>
           </motion.div>

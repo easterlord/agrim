@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzfaNep — hidden admin control center at #/original
+ * EzFameNp — hidden admin control center at #/original
  * (also reachable via /original or ?p=/original).
  * Protected by username + password (default: ramesh / agrim) or admin role.
  * ============================================================ */
@@ -65,7 +65,7 @@ import { set as dbSet } from "@/lib/rtdb";
 import { fileToCompressedDataUrl, sha256Hex, cn, fmtDateTime, fmtNPR, fmtUSD, genId } from "@/lib/utils";
 import type { FaqEntry, LocalPaymentChannel, Order, OrderStatus, Platform, QuickAction, ServiceType, Settings } from "@/lib/types";
 
-const LS_ADMIN_OK = "ezfa:adminok";
+const LS_ADMIN_OK = "ezfamenp:adminok";
 
 type Tab = "dashboard" | "orders" | "services" | "payments" | "chatbot" | "links" | "users" | "settings";
 
@@ -1125,7 +1125,7 @@ function SettingsAdmin() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ezfanep-backup-${Date.now()}.json`;
+      a.download = `ezfamenp-backup-${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {

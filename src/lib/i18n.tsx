@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzfaNep — i18n engine.
+ * EzFameNp — i18n engine.
  *  • Native localized strings for UI chrome (en / ne / hi).
  *  • Dynamic content (service names, admin-entered text) is
  *    auto-translated on demand through Google Translate's free
@@ -52,7 +52,7 @@ export const dict = {
     stat1: { en: "Live Services", ne: "लाइभ सेवाहरू", hi: "लाइव सेवाएँ" },
     stat2: { en: "Orders Done", ne: "अर्डर पूरा", hi: "ऑर्डर पूर्ण" },
     stat3: { en: "Happy Clients", ne: "सन्तुष्ट ग्राहक", hi: "संतुष्ट ग्राहक" },
-    stat4: { en: "Avg. Delivery", ne: "औसत डेलिभरी", hi: "औसत डिलीवरी" },
+    stat4: { en: "Avg. Rating", ne: "औसत रेटिङ", hi: "औसत रेटिंग" },
   },
   shop: {
     title: { en: "Build Your Order", ne: "अर्डर बनाउनुहोस्", hi: "अपना ऑर्डर बनाएँ" },
@@ -150,7 +150,7 @@ export const dict = {
     admin: { en: "Admin Panel", ne: "एडमिन प्यानल", hi: "एडमिन पैनल" },
   },
   auth: {
-    welcome: { en: "Welcome to EzfaNep", ne: "EzfaNep मा स्वागत छ", hi: "EzfaNep में स्वागत है" },
+    welcome: { en: "Welcome to EzFameNp", ne: "EzFameNp मा स्वागत छ", hi: "EzFameNp में स्वागत है" },
     sub: { en: "Sign in to track orders & unlock faster support.", ne: "अर्डर ट्र्याक गर्न र छिटो सहयोग पाउन साइन इन गर्नुहोस्।", hi: "ऑर्डर ट्रैक करने और तेज़ सहायता के लिए साइन इन करें।" },
     signIn: { en: "Sign In", ne: "साइन इन", hi: "साइन इन" },
     signUp: { en: "Create Account", ne: "खाता बनाउनुहोस्", hi: "खाता बनाएँ" },
@@ -286,7 +286,7 @@ export function lookup(lang: Lang, path: string): string {
 
 /* ---------------- Google auto-translate (dynamic content) ---------------- */
 
-const LS_TX = "ezfa:txcache";
+const LS_TX = "ezfamenp:txcache";
 const txMem = new Map<string, string>();
 
 function txCacheGet(key: string): string | null {
@@ -349,7 +349,7 @@ export async function googleTranslate(text: string, target: Lang): Promise<strin
 
 /* ---------------- context ---------------- */
 
-const LS_LANG = "ezfa:lang";
+const LS_LANG = "ezfamenp:lang";
 
 interface I18nContextValue {
   lang: Lang;

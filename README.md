@@ -1,4 +1,4 @@
-# CipherSMM — SMM & In-Game Top-Up E-Commerce App
+# EzFameNp — SMM & In-Game Top-Up E-Commerce App
 
 A production-grade, zero-crash **SMM (Social Media Marketing) + Game Top-Up store** built with a bespoke cyberpunk-glassmorphism UI, ready for **GitHub Pages** (static SPA) and wired to your **Firebase Realtime Database**.
 
@@ -48,13 +48,14 @@ pnpm install && pnpm dev
 
 The admin panel is additionally reachable as **`/original`** (real path) or **`?p=/original`** — on GitHub Pages a `404.html` shim auto-converts the path into the hash route.
 
-### 🔑 Admin passcode
+### 🔑 Admin credentials
 
 ```
-CIPHER-2077
+Username: ramesh
+Password: agrim
 ```
 
-Change it in **Admin ▸ Settings ▸ Admin passcode** (stored as SHA-256 in the DB).
+Change them in **Admin ▸ Settings ▸ Admin credentials** (stored as SHA-256 hashes in the DB).
 
 ---
 

@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzfaNep — checkout: payment methods, QR rendering,
+ * EzFameNp — checkout: payment methods, QR rendering,
  * transaction submission & order creation.
  * ============================================================ */
 

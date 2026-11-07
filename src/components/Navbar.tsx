@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzfaNep — glass navbar: routing, currency, language, theme
+ * EzFameNp — glass navbar: routing, currency, language, theme
  * ============================================================ */
 
 import { AnimatePresence, motion, useScroll, useMotionValueEvent } from "framer-motion";

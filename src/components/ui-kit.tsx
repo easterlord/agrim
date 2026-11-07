@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzfaNep — bespoke glass UI kit
+ * EzFameNp — bespoke glass UI kit
  * ============================================================ */
 
 import { AnimatePresence, animate, motion } from "framer-motion";

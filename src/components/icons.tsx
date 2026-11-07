@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzfaNep — inline SVG brand & platform icons.
+ * EzFameNp — inline SVG brand & platform icons.
  * Every icon is embedded (no external images) so they can never
  * fail to load. Stroke icons inherit `currentColor`.
  * ============================================================ */
@@ -223,7 +223,7 @@ export function Logo({ size = 34, className }: { size?: number; className?: stri
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" className={className} aria-hidden="true">
       <defs>
-        <linearGradient id="ezfa-logo-grad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+        <linearGradient id="ezfamenp-logo-grad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
           <stop offset="0" stopColor="#2dd4bf" />
           <stop offset="0.55" stopColor="#34d399" />
           <stop offset="1" stopColor="#fbbf24" />
@@ -232,7 +232,7 @@ export function Logo({ size = 34, className }: { size?: number; className?: stri
       <path
         d="M24 3.5 41.5 13.75v20.5L24 44.5 6.5 34.25v-20.5z"
         fill="none"
-        stroke="url(#ezfa-logo-grad)"
+        stroke="url(#ezfamenp-logo-grad)"
         strokeWidth="2.6"
         strokeLinejoin="round"
         opacity="0.55"
@@ -240,7 +240,7 @@ export function Logo({ size = 34, className }: { size?: number; className?: stri
       <path
         d="M19 16.5h11M19 24h8.5M19 31.5h11M19 16.5v15"
         fill="none"
-        stroke="url(#ezfa-logo-grad)"
+        stroke="url(#ezfamenp-logo-grad)"
         strokeWidth="3.2"
         strokeLinecap="round"
       />
@@ -265,7 +265,17 @@ export function PayGlyph({ method, size = 22, className }: { method: string; siz
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true">
           <rect x="2" y="4" width="20" height="16" rx="3.5" fill="#60BB46" />
-          <text x="12" y="15.6" textAnchor="middle" fontSize="8" fontWeight="800" fill="#fff" fontFamily="inherit">
+          <text
+            x="12"
+            y="14.8"
+            textAnchor="middle"
+            fontSize="6.4"
+            fontWeight="800"
+            fill="#fff"
+            fontFamily="inherit"
+            textLength="16"
+            lengthAdjust="spacingAndGlyphs"
+          >
             eSEWA
           </text>
         </svg>
@@ -274,7 +284,17 @@ export function PayGlyph({ method, size = 22, className }: { method: string; siz
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden="true">
           <rect x="2" y="4" width="20" height="16" rx="3.5" fill="#5C2D91" />
-          <text x="12" y="15.6" textAnchor="middle" fontSize="8" fontWeight="800" fill="#fff" fontFamily="inherit">
+          <text
+            x="12"
+            y="14.8"
+            textAnchor="middle"
+            fontSize="6.4"
+            fontWeight="800"
+            fill="#fff"
+            fontFamily="inherit"
+            textLength="14"
+            lengthAdjust="spacingAndGlyphs"
+          >
             Khalti
           </text>
         </svg>

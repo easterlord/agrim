@@ -1,5 +1,5 @@
 /* ============================================================
- * EzfaNep — Core domain types
+ * EzFameNp — Core domain types
  * Shared across the data layer, stores, views and admin panel.
  * ============================================================ */
 

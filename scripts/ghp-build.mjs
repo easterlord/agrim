@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* ============================================================
- * CipherSMM — GitHub Pages static export builder.
+ * EzFameNp — GitHub Pages static export builder.
  *
  *   node scripts/ghp-build.mjs
  *

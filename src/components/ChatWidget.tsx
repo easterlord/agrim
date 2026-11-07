@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzfaNep — floating AI support assistant (admin-configurable)
+ * EzFameNp — floating AI support assistant (admin-configurable)
  * ============================================================ */
 
 import { AnimatePresence, motion } from "framer-motion";
