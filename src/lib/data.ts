@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — React data hooks over the resilient RTDB layer.
+ * EzfaNep — React data hooks over the resilient RTDB layer.
  * All hooks merge remote values with local defaults so the UI
  * NEVER renders empty/broken state, online or offline.
  * ============================================================ */

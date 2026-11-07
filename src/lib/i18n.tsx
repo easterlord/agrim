@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — i18n engine.
+ * EzfaNep — i18n engine.
  *  • Native localized strings for UI chrome (en / ne / hi).
  *  • Dynamic content (service names, admin-entered text) is
  *    auto-translated on demand through Google Translate's free
@@ -150,7 +150,7 @@ export const dict = {
     admin: { en: "Admin Panel", ne: "एडमिन प्यानल", hi: "एडमिन पैनल" },
   },
   auth: {
-    welcome: { en: "Welcome to CipherSMM", ne: "CipherSMM मा स्वागत छ", hi: "CipherSMM में स्वागत है" },
+    welcome: { en: "Welcome to EzfaNep", ne: "EzfaNep मा स्वागत छ", hi: "EzfaNep में स्वागत है" },
     sub: { en: "Sign in to track orders & unlock faster support.", ne: "अर्डर ट्र्याक गर्न र छिटो सहयोग पाउन साइन इन गर्नुहोस्।", hi: "ऑर्डर ट्रैक करने और तेज़ सहायता के लिए साइन इन करें।" },
     signIn: { en: "Sign In", ne: "साइन इन", hi: "साइन इन" },
     signUp: { en: "Create Account", ne: "खाता बनाउनुहोस्", hi: "खाता बनाएँ" },
@@ -182,17 +182,19 @@ export const dict = {
   },
   admin: {
     gate: { en: "Admin Access", ne: "एडमिन पहुँच", hi: "एडमिन एक्सेस" },
-    gateSub: { en: "Enter the admin passcode to open the control center.", ne: "नियन्त्रण केन्द्र खोल्न एडमिन पासकोड हाल्नुहोस्।", hi: "कंट्रोल सेंटर खोलने के लिए एडमिन पासकोड दर्ज करें।" },
-    passcode: { en: "Passcode", ne: "पासकोड", hi: "पासकोड" },
+    gateSub: { en: "Sign in with the admin username and password to open the control center.", ne: "नियन्त्रण केन्द्र खोल्न एडमिन प्रयोगकर्तानाम र पासवर्ड हाल्नुहोस्।", hi: "कंट्रोल सेंटर खोलने के लिए एडमिन उपयोगकर्तानाम और पासवर्ड दर्ज करें।" },
+    username: { en: "Username", ne: "प्रयोगकर्तानाम", hi: "उपयोगकर्तानाम" },
+    password: { en: "Password", ne: "पासवर्ड", hi: "पासवर्ड" },
     enter: { en: "Unlock", ne: "अनलक", hi: "अनलॉक" },
-    wrong: { en: "Wrong passcode", ne: "गलत पासकोड", hi: "गलत पासकोड" },
+    wrong: { en: "Wrong username or password", ne: "गलत प्रयोगकर्तानाम वा पासवर्ड", hi: "गलत उपयोगकर्तानाम या पासवर्ड" },
     title: { en: "Control Center", ne: "नियन्त्रण केन्द्र", hi: "कंट्रोल सेंटर" },
     revenue: { en: "Revenue (USD)", ne: "आम्दानी (USD)", hi: "राजस्व (USD)" },
     totalOrders: { en: "Total Orders", ne: "कुल अर्डर", hi: "कुल ऑर्डर" },
     rate: { en: "Exchange rate (NPR per $1)", ne: "विनिमय दर ($१ = कति रु)", hi: "एक्सचेंज दर ($1 = कितन रु)" },
     siteName: { en: "Site name", ne: "साइट नाम", hi: "साइट नाम" },
     tagline: { en: "Tagline", ne: "ट्यागलाइन", hi: "टैगलाइन" },
-    passcodeNew: { en: "New passcode (blank = keep current)", ne: "नयाँ पासकोड (खाली = पुरानै)", hi: "नया पासकोड (खाली = वही)" },
+    userNew: { en: "New username (blank = keep current)", ne: "नयाँ प्रयोगकर्तानाम (खाली = पुरानै)", hi: "नया उपयोगकर्तानाम (खाली = वही)" },
+    passNew: { en: "New password (blank = keep current)", ne: "नयाँ पासवर्ड (खाली = पुरानै)", hi: "नया पासवर्ड (खाली = वही)" },
     saved: { en: "Saved successfully", ne: "सुरक्षित भयो", hi: "सेव हो गया" },
     addService: { en: "Add service", ne: "सेवा थप्नुहोस्", hi: "सेवा जोड़ें" },
     addPackage: { en: "Add package", ne: "प्याकेज थप्नुहोस्", hi: "पैकेज जोड़ें" },
@@ -284,7 +286,7 @@ export function lookup(lang: Lang, path: string): string {
 
 /* ---------------- Google auto-translate (dynamic content) ---------------- */
 
-const LS_TX = "csmm:txcache";
+const LS_TX = "ezfa:txcache";
 const txMem = new Map<string, string>();
 
 function txCacheGet(key: string): string | null {
@@ -347,7 +349,7 @@ export async function googleTranslate(text: string, target: Lang): Promise<strin
 
 /* ---------------- context ---------------- */
 
-const LS_LANG = "csmm:lang";
+const LS_LANG = "ezfa:lang";
 
 interface I18nContextValue {
   lang: Lang;

@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — resilient Firebase Realtime Database layer.
+ * EzfaNep — resilient Firebase Realtime Database layer.
  *
  * Strategy (zero-crash guarantee):
  *   1. Firebase JS SDK  (true realtime WebSocket) — used when a
@@ -32,9 +32,9 @@ import type { FirebaseClientConfig, Platform, Settings, SyncStatus } from "./typ
 
 /* ---------------- config resolution ---------------- */
 
-const LS_CONFIG = "csmm:fbconfig";
-const LS_CACHE = "csmm:cache:v1";
-const LS_QUEUE = "csmm:wq:v1";
+const LS_CONFIG = "ezfa:fbconfig";
+const LS_CACHE = "ezfa:cache:v1";
+const LS_QUEUE = "ezfa:wq:v1";
 
 export function getFirebaseConfig(): FirebaseClientConfig {
   const fallback: FirebaseClientConfig = {
@@ -201,8 +201,8 @@ function initSdk(): Database | null {
   if (database || sdkFailed) return database;
   try {
     const cfg = getFirebaseConfig();
-    const existing = getApps().find((a) => a.name === "ciphersmm");
-    app = existing ?? initializeApp({ databaseURL: cfg.databaseURL }, "ciphersmm");
+    const existing = getApps().find((a) => a.name === "ezfanep");
+    app = existing ?? initializeApp({ databaseURL: cfg.databaseURL }, "ezfanep");
     database = getDatabase(app);
   } catch {
     sdkFailed = true;

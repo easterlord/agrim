@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — client state (zustand).
+ * EzfaNep — client state (zustand).
  * Theme, currency & order draft persist across reloads.
  * ============================================================ */
 
@@ -30,7 +30,7 @@ export const useUI = create<UIState>()(
       toggleTheme: () => set({ theme: get().theme === "dark" ? "light" : "dark" }),
       setCurrency: (currency) => set({ currency }),
     }),
-    { name: "csmm:ui", version: 1 },
+    { name: "ezfa:ui", version: 1 },
   ),
 );
 
@@ -97,7 +97,7 @@ export const useDraft = create<DraftState>()(
         ];
       },
     }),
-    { name: "csmm:draft", version: 1 },
+    { name: "ezfa:draft", version: 1 },
   ),
 );
 

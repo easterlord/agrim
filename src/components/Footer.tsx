@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — glass footer with dynamic links from admin panel
+ * EzfaNep — glass footer with dynamic links from admin panel
  * ============================================================ */
 
 import { Mail, MessageCircle, Send, Youtube, Instagram, Facebook } from "lucide-react";
@@ -28,7 +28,7 @@ function SocialButton({
       target={external && !href.includes("@") ? "_blank" : undefined}
       rel="noreferrer noopener"
       aria-label={label}
-      className="glass glass-hover flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:text-neon-1"
+      className="glass glass-hover flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:text-acc-1"
     >
       {children}
     </a>
@@ -51,8 +51,8 @@ export function Footer() {
           </span>
           {settings.payments.esewa.enabled ? <PayGlyph method="esewa" size={30} /> : null}
           {settings.payments.khalti.enabled ? <PayGlyph method="khalti" size={30} /> : null}
-          {settings.payments.bank.enabled ? <PayGlyph method="bank" size={22} className="text-neon-1" /> : null}
-          {settings.payments.crypto.enabled ? <PayGlyph method="crypto" size={22} className="text-neon-2" /> : null}
+          {settings.payments.bank.enabled ? <PayGlyph method="bank" size={22} className="text-acc-1" /> : null}
+          {settings.payments.crypto.enabled ? <PayGlyph method="crypto" size={22} className="text-acc-2" /> : null}
           <span className="hidden text-[11px] text-muted-foreground sm:inline">
             · 1 USD = {rate.toFixed(2)} NPR ({currency === "NPR" ? "live rate" : "switch to रु for NPR"})
           </span>
@@ -95,22 +95,22 @@ export function Footer() {
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <HashLink to="/" className="text-muted-foreground transition-colors hover:text-neon-1">
+                <HashLink to="/" className="text-muted-foreground transition-colors hover:text-acc-1">
                   {t("nav.home")}
                 </HashLink>
               </li>
               <li>
-                <HashLink to="/orders" className="text-muted-foreground transition-colors hover:text-neon-1">
+                <HashLink to="/orders" className="text-muted-foreground transition-colors hover:text-acc-1">
                   {t("nav.orders")}
                 </HashLink>
               </li>
               <li>
-                <HashLink to="/account" className="text-muted-foreground transition-colors hover:text-neon-1">
+                <HashLink to="/account" className="text-muted-foreground transition-colors hover:text-acc-1">
                   {t("nav.account")}
                 </HashLink>
               </li>
               <li>
-                <HashLink to="/login" className="text-muted-foreground transition-colors hover:text-neon-1">
+                <HashLink to="/login" className="text-muted-foreground transition-colors hover:text-acc-1">
                   {t("nav.login")}
                 </HashLink>
               </li>
@@ -124,21 +124,21 @@ export function Footer() {
             <ul className="space-y-2 text-sm">
               {social.telegram ? (
                 <li>
-                  <a href={social.telegram} target="_blank" rel="noreferrer noopener" className="text-muted-foreground transition-colors hover:text-neon-1">
+                  <a href={social.telegram} target="_blank" rel="noreferrer noopener" className="text-muted-foreground transition-colors hover:text-acc-1">
                     Telegram — {settings.supportHours ?? "24/7"}
                   </a>
                 </li>
               ) : null}
               {social.whatsapp ? (
                 <li>
-                  <a href={social.whatsapp} target="_blank" rel="noreferrer noopener" className="text-muted-foreground transition-colors hover:text-neon-1">
+                  <a href={social.whatsapp} target="_blank" rel="noreferrer noopener" className="text-muted-foreground transition-colors hover:text-acc-1">
                     WhatsApp
                   </a>
                 </li>
               ) : null}
               {social.email ? (
                 <li>
-                  <a href={`mailto:${social.email}`} className="text-muted-foreground transition-colors hover:text-neon-1">
+                  <a href={`mailto:${social.email}`} className="text-muted-foreground transition-colors hover:text-acc-1">
                     {social.email}
                   </a>
                 </li>

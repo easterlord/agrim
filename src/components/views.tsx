@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — orders, account & auth views
+ * EzfaNep — orders, account & auth views
  * ============================================================ */
 
 import { AnimatePresence, motion } from "framer-motion";
@@ -29,7 +29,7 @@ import {
   EmptyState,
   Field,
   GlassCard,
-  NeonButton,
+  AccentButton,
   SectionTitle,
   Segmented,
   Spinner,
@@ -73,7 +73,7 @@ function OrderCard({ order }: { order: Order }) {
     <GlassCard className="p-5" hover>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2.5">
-          <span className="font-mono text-sm font-extrabold tracking-wider text-neon-1">{order.id}</span>
+          <span className="font-mono text-sm font-extrabold tracking-wider text-acc-1">{order.id}</span>
           <StatusBadge status={order.status} label={t(STATUS_KEY[order.status])} />
         </div>
         <span className="flex items-center gap-1 text-[11px] text-muted-foreground" title={fmtDateTime(order.createdAt)}>
@@ -117,15 +117,15 @@ function OrderCard({ order }: { order: Order }) {
                   <span
                     className={cn(
                       "h-2.5 w-2.5 rounded-full transition-all duration-500",
-                      reached ? "bg-neon-1 shadow-[0_0_8px_var(--neon-1)]" : "bg-muted-foreground/30",
+                      reached ? "bg-acc-1 shadow-[0_0_8px_var(--acc-1)]" : "bg-muted-foreground/30",
                     )}
                   />
-                  <span className={cn("text-[9px] font-bold uppercase tracking-wide", reached ? "text-neon-1" : "text-muted-foreground/60")}>
+                  <span className={cn("text-[9px] font-bold uppercase tracking-wide", reached ? "text-acc-1" : "text-muted-foreground/60")}>
                     {label}
                   </span>
                 </div>
                 {idx < 3 ? (
-                  <div className={cn("mb-4 h-px flex-1", step > idx ? "bg-neon-1/60" : "bg-border")} />
+                  <div className={cn("mb-4 h-px flex-1", step > idx ? "bg-acc-1/60" : "bg-border")} />
                 ) : null}
               </div>
             );
@@ -196,7 +196,7 @@ export function OrdersView() {
               className="pl-9 font-mono uppercase"
             />
           </div>
-          <NeonButton onClick={doLookup}>{t("orders.lookupBtn")}</NeonButton>
+          <AccentButton onClick={doLookup}>{t("orders.lookupBtn")}</AccentButton>
         </div>
         <AnimatePresence>
           {lookupResult ? (
@@ -226,7 +226,7 @@ export function OrdersView() {
         <EmptyState
           icon={<History size={26} />}
           title={t("orders.empty")}
-          action={<NeonButton onClick={() => navigate("/")}>{t("hero.cta1")}</NeonButton>}
+          action={<AccentButton onClick={() => navigate("/")}>{t("hero.cta1")}</AccentButton>}
         />
       ) : (
         <div className="space-y-4">
@@ -261,7 +261,7 @@ export function AccountView() {
         <EmptyState
           icon={<UserIcon size={26} />}
           title={t("nav.login")}
-          action={<NeonButton onClick={() => navigate("/login")}>{t("auth.signIn")}</NeonButton>}
+          action={<AccentButton onClick={() => navigate("/login")}>{t("auth.signIn")}</AccentButton>}
         />
       </section>
     );
@@ -276,7 +276,7 @@ export function AccountView() {
           <div className="flex items-center gap-4">
             <span
               className="flex h-16 w-16 items-center justify-center rounded-2xl text-2xl font-extrabold text-white"
-              style={{ background: "linear-gradient(135deg, var(--neon-1), var(--neon-2))" }}
+              style={{ background: "linear-gradient(135deg, var(--acc-1), var(--acc-2))" }}
             >
               {(user.name || "G").slice(0, 1).toUpperCase()}
             </span>
@@ -290,10 +290,10 @@ export function AccountView() {
               </p>
             </div>
             {user.role === "admin" ? (
-              <NeonButton size="sm" onClick={() => navigate("/original")}>
+              <AccentButton size="sm" onClick={() => navigate("/original")}>
                 <LayoutDashboard size={14} />
                 {t("account.admin")}
-              </NeonButton>
+              </AccentButton>
             ) : null}
           </div>
         </GlassCard>
@@ -336,7 +336,7 @@ export function AccountView() {
                   onClick={() => setLang(l)}
                   className={cn(
                     "rounded-xl border px-3.5 py-2 text-sm font-semibold transition-all",
-                    lang === l ? "pill-active bg-accent" : "border-border/70 hover:border-neon-1/40",
+                    lang === l ? "pill-active bg-accent" : "border-border/70 hover:border-acc-1/40",
                   )}
                 >
                   {l === "en" ? "English" : l === "ne" ? "नेपाली" : "हिन्दी"}
@@ -390,7 +390,7 @@ export function AccountView() {
             <Trash2 size={14} />
             {t("orders.title")}
           </button>
-          <NeonButton
+          <AccentButton
             variant="danger"
             onClick={() => {
               void signOutUser();
@@ -399,7 +399,7 @@ export function AccountView() {
           >
             <LogOut size={14} />
             {t("nav.logout")}
-          </NeonButton>
+          </AccentButton>
         </GlassCard>
       </div>
     </section>
@@ -475,11 +475,11 @@ export function LoginView() {
           className="relative hidden flex-col justify-between p-8 lg:flex"
           style={{
             background:
-              "linear-gradient(150deg, color-mix(in oklab, var(--neon-1) 22%, transparent), color-mix(in oklab, var(--neon-2) 26%, transparent) 55%, color-mix(in oklab, var(--neon-3) 22%, transparent))",
+              "linear-gradient(150deg, color-mix(in oklab, var(--acc-1) 22%, transparent), color-mix(in oklab, var(--acc-2) 26%, transparent) 55%, color-mix(in oklab, var(--acc-3) 22%, transparent))",
           }}
         >
           <div>
-            <p className="font-[family-name:var(--f-display)] text-2xl font-extrabold text-gradient">CipherSMM</p>
+            <p className="font-[family-name:var(--f-display)] text-2xl font-extrabold text-gradient">EzfaNep</p>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">{t("auth.sub")}</p>
           </div>
           <ul className="space-y-3 text-sm">
@@ -491,7 +491,7 @@ export function LoginView() {
                 transition={{ delay: 0.2 + i * 0.12 }}
                 className="flex items-center gap-2 font-semibold"
               >
-                <span className="h-1.5 w-1.5 rounded-full bg-neon-1" />
+                <span className="h-1.5 w-1.5 rounded-full bg-acc-1" />
                 {line}
               </motion.li>
             ))}
@@ -507,14 +507,14 @@ export function LoginView() {
             <button
               onClick={() => void run(signInGoogle)}
               disabled={busy}
-              className="glass flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all hover:border-neon-1/40"
+              className="glass flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all hover:border-acc-1/40"
             >
               <GoogleGlyph /> Google
             </button>
             <button
               onClick={() => void run(signInApple)}
               disabled={busy}
-              className="glass flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all hover:border-neon-1/40"
+              className="glass flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-all hover:border-acc-1/40"
             >
               <AppleGlyph /> Apple
             </button>
@@ -569,10 +569,10 @@ export function LoginView() {
                 autoComplete={tab === "in" ? "current-password" : "new-password"}
               />
             </Field>
-            <NeonButton type="submit" className="w-full" size="lg" disabled={busy}>
+            <AccentButton type="submit" className="w-full" size="lg" disabled={busy}>
               <Box size={16} />
               {tab === "in" ? t("auth.signIn") : t("auth.signUp")}
-            </NeonButton>
+            </AccentButton>
           </form>
 
           <button
@@ -580,7 +580,7 @@ export function LoginView() {
               signInGuest();
               navigate("/");
             }}
-            className="mt-4 w-full rounded-xl border border-dashed border-border py-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-neon-1/50 hover:text-foreground"
+            className="mt-4 w-full rounded-xl border border-dashed border-border py-2.5 text-xs font-semibold text-muted-foreground transition-colors hover:border-acc-1/50 hover:text-foreground"
           >
             {t("auth.guest")}
           </button>

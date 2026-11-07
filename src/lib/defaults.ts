@@ -1,5 +1,5 @@
 /* ============================================================
- * CipherSMM — Default catalog & settings (used to seed Firebase
+ * EzfaNep — Default catalog & settings (used to seed Firebase
  * RTDB on first run and as an offline fallback cache).
  * ============================================================ */
 
@@ -8,9 +8,14 @@ import type { Platform, Settings } from "./types";
 export const DEFAULT_DB_URL =
   "https://cipher-dump-default-rtdb.asia-southeast1.firebasedatabase.app";
 
-/** sha256("CIPHER-2077") — default admin passcode, changeable in admin panel */
-export const DEFAULT_PASSCODE_HASH =
-  "a841e8c748128aa0828e730aed2ad1cf48419961496beb0f6e7a46864c8a1cce";
+/** Default admin credentials — changeable in Admin ▸ Settings. */
+export const DEFAULT_ADMIN_USERNAME = "ramesh";
+/** sha256("ramesh") */
+export const DEFAULT_ADMIN_USER_HASH =
+  "49e60a7c53c51ba018595353811cefaeb20b5a27d2567fdce469cb1e77fc2312";
+/** sha256("agrim") */
+export const DEFAULT_ADMIN_PASS_HASH =
+  "22826098872362e4f91b09da2d5439386830842e74df2f5fa8c0bd6ab9b5b2a4";
 
 export const DEFAULT_EXCHANGE_RATE = 133.5;
 
@@ -338,7 +343,7 @@ export const DEFAULT_CATALOG: Platform[] = [
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
-  siteName: "CipherSMM",
+  siteName: "EzfaNep",
   tagline: "SMM & Game Top-Up Superstore",
   exchangeRate: DEFAULT_EXCHANGE_RATE,
   payments: {
@@ -361,7 +366,7 @@ export const DEFAULT_SETTINGS: Settings = {
     },
     esewa: {
       enabled: true,
-      accountName: "CipherSMM Store",
+      accountName: "EzfaNep Store",
       accountNumber: "9801234567",
       qrUrl: "",
       instructions:
@@ -369,7 +374,7 @@ export const DEFAULT_SETTINGS: Settings = {
     },
     khalti: {
       enabled: true,
-      accountName: "CipherSMM Store",
+      accountName: "EzfaNep Store",
       accountNumber: "9812345678",
       qrUrl: "",
       instructions:
@@ -377,7 +382,7 @@ export const DEFAULT_SETTINGS: Settings = {
     },
     bank: {
       enabled: true,
-      accountName: "Cipher Traders Pvt. Ltd.",
+      accountName: "EzfaNep Traders Pvt. Ltd.",
       accountNumber: "0123 4567 8901 (NIC Asia Bank)",
       qrUrl: "",
       instructions:
@@ -386,11 +391,11 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   chatbot: {
     enabled: true,
-    botName: "Cipher AI",
+    botName: "Ezfa AI",
     welcome:
-      "Namaste! I'm Cipher AI. Ask me about prices, delivery time, payments or track your order (send your ORD-XXXXXX id).",
+      "Namaste! I'm Ezfa AI. Ask me about prices, delivery time, payments or track your order (send your ORD-XXXXXX id).",
     systemPrompt:
-      "You are Cipher AI, the friendly support assistant for CipherSMM — an SMM & game top-up store for Nepal. Answer in the user's language (English/Nepali/Hindi). Be short, helpful and factual. Use the store context provided to answer pricing, payment and order questions.",
+      "You are Ezfa AI, the friendly support assistant for EzfaNep — an SMM & game top-up store for Nepal. Answer in the user's language (English/Nepali/Hindi). Be short, helpful and factual. Use the store context provided to answer pricing, payment and order questions.",
     faqs: [
       {
         id: "faq-1",
@@ -424,14 +429,15 @@ export const DEFAULT_SETTINGS: Settings = {
     model: "gpt-4o-mini",
   },
   social: {
-    telegram: "https://t.me/ciphersmm_support",
+    telegram: "https://t.me/ezfanep_support",
     whatsapp: "https://wa.me/9779812345678",
-    email: "support@ciphersmm.com",
-    instagram: "https://instagram.com/ciphersmm",
+    email: "support@ezfanep.com",
+    instagram: "https://instagram.com/ezfanep",
     facebook: "",
     youtube: "",
   },
-  adminPasscodeHash: DEFAULT_PASSCODE_HASH,
+  adminUserHash: DEFAULT_ADMIN_USER_HASH,
+  adminPassHash: DEFAULT_ADMIN_PASS_HASH,
   supportHours: "24/7 live support",
   updatedAt: 0,
 };

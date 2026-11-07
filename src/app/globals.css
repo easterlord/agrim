@@ -4,7 +4,9 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ============================================================
-   CipherSMM — bespoke cyberpunk-glass design system
+   EzfaNep — clean glassmorphism design system
+   Soft neutral surfaces · teal / emerald / amber accents
+   No neon, no glow — elevated glass with gentle depth.
    ============================================================ */
 
 @theme inline {
@@ -31,29 +33,29 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 6px);
 
-  --color-neon-1: var(--neon-1);
-  --color-neon-2: var(--neon-2);
-  --color-neon-3: var(--neon-3);
+  --color-acc-1: var(--acc-1);
+  --color-acc-2: var(--acc-2);
+  --color-acc-3: var(--acc-3);
   --color-ok: var(--ok);
   --color-warn: var(--warn);
 
   --font-display: var(--f-display);
   --font-head: var(--f-head);
   --font-body: var(--f-body);
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 /* ---------------- fonts ---------------- */
 
 :root {
-  --f-display: "Orbitron", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  --f-head: "Space Grotesk", "Inter", ui-sans-serif, system-ui, sans-serif;
-  --f-body: "Inter", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --f-display: "Sora", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --f-head: "Sora", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --f-body: "Inter", ui-sans-serif, system-ui, sans-serif;
   --f-deva: "Noto Sans Devanagari", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 html.lang-deva {
-  --f-display: "Noto Sans Devanagari", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --f-display: "Noto Sans Devanagari", "Sora", ui-sans-serif, system-ui, sans-serif;
   --f-head: "Noto Sans Devanagari", "Inter", ui-sans-serif, system-ui, sans-serif;
   --f-body: "Noto Sans Devanagari", "Inter", ui-sans-serif, system-ui, sans-serif;
 }
@@ -62,81 +64,81 @@ html.lang-deva {
 
 :root {
   --radius: 1rem;
-  --neon-1: #0891b2;
-  --neon-2: #7c3aed;
-  --neon-3: #db2777;
+  --acc-1: #0d9488;
+  --acc-2: #059669;
+  --acc-3: #d97706;
   --ok: #059669;
   --warn: #d97706;
 
-  --background: #eef2fc;
-  --foreground: #101426;
+  --background: #f4f6f5;
+  --foreground: #131917;
   --card: rgba(255, 255, 255, 0.66);
-  --card-foreground: #101426;
-  --popover: rgba(255, 255, 255, 0.92);
-  --popover-foreground: #101426;
-  --primary: #0e7490;
+  --card-foreground: #131917;
+  --popover: rgba(255, 255, 255, 0.94);
+  --popover-foreground: #131917;
+  --primary: #0f766e;
   --primary-foreground: #ffffff;
-  --secondary: rgba(124, 58, 237, 0.1);
-  --secondary-foreground: #4c1d95;
-  --muted: rgba(16, 20, 38, 0.05);
-  --muted-foreground: #51607e;
-  --accent: rgba(8, 145, 178, 0.1);
-  --accent-foreground: #0e7490;
+  --secondary: rgba(5, 150, 105, 0.09);
+  --secondary-foreground: #065f46;
+  --muted: rgba(19, 25, 23, 0.05);
+  --muted-foreground: #5a6663;
+  --accent: rgba(13, 148, 136, 0.09);
+  --accent-foreground: #0f766e;
   --destructive: #dc2626;
-  --border: rgba(16, 24, 64, 0.12);
-  --input: rgba(16, 24, 64, 0.14);
-  --ring: rgba(8, 145, 178, 0.55);
+  --border: rgba(19, 25, 23, 0.12);
+  --input: rgba(19, 25, 23, 0.14);
+  --ring: rgba(13, 148, 136, 0.45);
 
-  --glass-bg: rgba(255, 255, 255, 0.6);
-  --glass-bg-strong: rgba(255, 255, 255, 0.78);
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-bg-strong: rgba(255, 255, 255, 0.8);
   --glass-border: rgba(255, 255, 255, 0.9);
-  --glass-shadow: 0 18px 50px -18px rgba(30, 41, 96, 0.28);
+  --glass-shadow: 0 16px 44px -20px rgba(20, 34, 29, 0.25);
   --glass-inner: rgba(255, 255, 255, 0.85);
-  --grid-line: rgba(30, 41, 96, 0.06);
-  --aurora-a: rgba(8, 145, 178, 0.16);
-  --aurora-b: rgba(124, 58, 237, 0.14);
-  --aurora-c: rgba(219, 39, 119, 0.1);
-  --scroll-thumb: rgba(16, 24, 64, 0.25);
+  --grid-line: rgba(20, 34, 29, 0.045);
+  --aurora-a: rgba(13, 148, 136, 0.1);
+  --aurora-b: rgba(5, 150, 105, 0.08);
+  --aurora-c: rgba(217, 119, 6, 0.06);
+  --scroll-thumb: rgba(19, 25, 23, 0.22);
 }
 
 /* ---------------- dark theme ---------------- */
 
 .dark {
-  --neon-1: #22d3ee;
-  --neon-2: #a78bfa;
-  --neon-3: #f472b6;
+  --acc-1: #2dd4bf;
+  --acc-2: #34d399;
+  --acc-3: #fbbf24;
   --ok: #34d399;
   --warn: #fbbf24;
 
-  --background: #05070f;
-  --foreground: #e8eeff;
-  --card: rgba(148, 163, 255, 0.055);
-  --card-foreground: #e8eeff;
-  --popover: rgba(10, 14, 30, 0.92);
-  --popover-foreground: #e8eeff;
-  --primary: #22d3ee;
-  --primary-foreground: #04121a;
-  --secondary: rgba(167, 139, 250, 0.12);
-  --secondary-foreground: #c4b5fd;
-  --muted: rgba(148, 163, 255, 0.07);
-  --muted-foreground: #8b96b8;
-  --accent: rgba(34, 211, 238, 0.1);
-  --accent-foreground: #67e8f9;
+  --background: #0a0e0d;
+  --foreground: #e7ede9;
+  --card: rgba(148, 180, 168, 0.055);
+  --card-foreground: #e7ede9;
+  --popover: rgba(12, 17, 15, 0.94);
+  --popover-foreground: #e7ede9;
+  --primary: #2dd4bf;
+  --primary-foreground: #032622;
+  --secondary: rgba(52, 211, 153, 0.1);
+  --secondary-foreground: #a7f3d0;
+  --muted: rgba(148, 180, 168, 0.07);
+  --muted-foreground: #93a29b;
+  --accent: rgba(45, 212, 191, 0.09);
+  --accent-foreground: #5eead4;
   --destructive: #f87171;
-  --border: rgba(148, 163, 255, 0.14);
-  --input: rgba(148, 163, 255, 0.18);
-  --ring: rgba(34, 211, 238, 0.6);
+  --border: rgba(148, 180, 168, 0.14);
+  --input: rgba(148, 180, 168, 0.18);
+  --ring: rgba(45, 212, 191, 0.5);
 
-  --glass-bg: rgba(13, 18, 38, 0.55);
-  --glass-bg-strong: rgba(16, 22, 46, 0.78);
-  --glass-border: rgba(148, 163, 255, 0.16);
-  --glass-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.65);
-  --glass-inner: rgba(255, 255, 255, 0.07);
-  --grid-line: rgba(148, 163, 255, 0.05);
-  --aurora-a: rgba(34, 211, 238, 0.14);
-  --aurora-b: rgba(139, 92, 246, 0.16);
-  --aurora-c: rgba(236, 72, 153, 0.1);
-  --scroll-thumb: rgba(148, 163, 255, 0.22);
+  --glass-bg: rgba(15, 21, 19, 0.55);
+  --glass-bg-strong: rgba(18, 25, 23, 0.78);
+  --glass-border: rgba(148, 180, 168, 0.16);
+  --glass-shadow: 0 22px 54px -22px rgba(0, 0, 0, 0.6);
+  --glass-inner: rgba(255, 255, 255, 0.06);
+  --grid-line: rgba(148, 180, 168, 0.04);
+  --aurora-a: rgba(45, 212, 191, 0.09);
+  --aurora-b: rgba(52, 211, 153, 0.07);
+  --aurora-c: rgba(251, 191, 36, 0.045);
+  --scroll-thumb: rgba(148, 180, 168, 0.22);
 }
 
 @layer base {
@@ -161,12 +163,12 @@ html.lang-deva {
     font-family: var(--f-head);
   }
   ::selection {
-    background: color-mix(in oklab, var(--neon-1) 35%, transparent);
+    background: color-mix(in oklab, var(--acc-1) 28%, transparent);
     color: var(--foreground);
   }
 }
 
-/* ---------------- animated aurora + grid backdrop ---------------- */
+/* ---------------- soft ambient backdrop ---------------- */
 
 .bg-scene {
   position: fixed;
@@ -188,8 +190,8 @@ html.lang-deva {
 .bg-orb {
   position: absolute;
   border-radius: 9999px;
-  filter: blur(70px);
-  opacity: 0.85;
+  filter: blur(80px);
+  opacity: 0.7;
   will-change: transform;
 }
 .bg-orb-1 {
@@ -225,8 +227,8 @@ html.lang-deva {
 .glass {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  backdrop-filter: blur(18px) saturate(1.35);
-  -webkit-backdrop-filter: blur(18px) saturate(1.35);
+  backdrop-filter: blur(18px) saturate(1.3);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
   box-shadow: var(--glass-shadow);
   position: relative;
 }
@@ -250,57 +252,52 @@ html.lang-deva {
 }
 .glass-hover:hover {
   transform: translateY(-3px);
-  border-color: color-mix(in oklab, var(--neon-1) 45%, var(--glass-border));
-  box-shadow:
-    var(--glass-shadow),
-    0 0 0 1px color-mix(in oklab, var(--neon-1) 22%, transparent),
-    0 12px 44px -14px color-mix(in oklab, var(--neon-1) 38%, transparent);
+  border-color: color-mix(in oklab, var(--acc-1) 32%, var(--glass-border));
+  box-shadow: 0 18px 46px -20px color-mix(in oklab, var(--acc-1) 26%, transparent);
 }
 
-/* ---------------- neon text & buttons ---------------- */
+/* ---------------- gradient text & accent buttons ---------------- */
 
 .text-gradient {
-  background: linear-gradient(92deg, var(--neon-1), var(--neon-2) 52%, var(--neon-3));
+  background: linear-gradient(92deg, var(--acc-1), var(--acc-2) 52%, var(--acc-3));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
-.glow-cyan {
-  filter: drop-shadow(0 0 14px color-mix(in oklab, var(--neon-1) 65%, transparent));
+.soft-emboss {
+  filter: saturate(1.08);
 }
-.btn-neon {
+.btn-accent {
   position: relative;
-  background: linear-gradient(93deg, var(--neon-1), var(--neon-2) 60%, var(--neon-3));
+  background: linear-gradient(93deg, var(--acc-1), var(--acc-2) 60%, var(--acc-3));
   color: #ffffff;
   isolation: isolate;
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s ease, filter 0.3s ease;
 }
-.dark .btn-neon {
-  color: #071018;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+.dark .btn-accent {
+  color: #04241f;
+  font-weight: 700;
 }
-.btn-neon:hover {
+.btn-accent:hover {
   transform: translateY(-2px);
-  box-shadow:
-    0 10px 34px -8px color-mix(in oklab, var(--neon-1) 60%, transparent),
-    0 4px 18px -4px color-mix(in oklab, var(--neon-2) 55%, transparent);
-  filter: saturate(1.15);
+  box-shadow: 0 12px 28px -12px color-mix(in oklab, var(--acc-1) 45%, transparent);
+  filter: saturate(1.1);
 }
-.btn-neon:active {
+.btn-accent:active {
   transform: translateY(0) scale(0.985);
 }
-.btn-neon::after {
+.btn-accent::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+  background: linear-gradient(120deg, transparent 30%, rgba(255, 255, 255, 0.3) 50%, transparent 70%);
   background-size: 220% 100%;
   background-position: 120% 0;
   opacity: 0;
   transition: opacity 0.2s;
 }
-.btn-neon:hover::after {
+.btn-accent:hover::after {
   opacity: 1;
   animation: sheen 1.1s ease forwards;
 }
@@ -309,12 +306,12 @@ html.lang-deva {
   to { background-position: -120% 0; }
 }
 
-/* pill with animated neon ring */
+/* pill with accent ring */
 .pill-active {
-  border-color: color-mix(in oklab, var(--neon-1) 65%, transparent) !important;
+  border-color: color-mix(in oklab, var(--acc-1) 45%, transparent) !important;
   box-shadow:
-    0 0 0 1px color-mix(in oklab, var(--neon-1) 40%, transparent),
-    0 8px 30px -10px color-mix(in oklab, var(--neon-1) 55%, transparent);
+    0 0 0 1px color-mix(in oklab, var(--acc-1) 22%, transparent),
+    0 8px 22px -12px color-mix(in oklab, var(--acc-1) 30%, transparent);
 }
 
 /* ---------------- inputs ---------------- */
@@ -335,45 +332,45 @@ html.lang-deva {
 }
 .field:focus {
   outline: none;
-  border-color: color-mix(in oklab, var(--neon-1) 60%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--neon-1) 18%, transparent);
+  border-color: color-mix(in oklab, var(--acc-1) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--acc-1) 14%, transparent);
 }
 
 /* ---------------- range slider ---------------- */
 
-input[type="range"].slider-neon {
+input[type="range"].slider-accent {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--neon-1), var(--neon-2)) no-repeat,
+  background: linear-gradient(90deg, var(--acc-1), var(--acc-2)) no-repeat,
     color-mix(in oklab, var(--muted-foreground) 25%, transparent);
   background-size: var(--fill, 50%) 100%;
   outline: none;
   cursor: pointer;
 }
-input[type="range"].slider-neon::-webkit-slider-thumb {
+input[type="range"].slider-accent::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 20px;
   height: 20px;
   border-radius: 999px;
   background: #fff;
-  border: 3px solid var(--neon-1);
-  box-shadow: 0 0 12px color-mix(in oklab, var(--neon-1) 70%, transparent);
+  border: 3px solid var(--acc-1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   cursor: grab;
   transition: transform 0.15s;
 }
-input[type="range"].slider-neon::-webkit-slider-thumb:hover {
+input[type="range"].slider-accent::-webkit-slider-thumb:hover {
   transform: scale(1.12);
 }
-input[type="range"].slider-neon::-moz-range-thumb {
+input[type="range"].slider-accent::-moz-range-thumb {
   width: 18px;
   height: 18px;
   border-radius: 999px;
   background: #fff;
-  border: 3px solid var(--neon-1);
-  box-shadow: 0 0 12px color-mix(in oklab, var(--neon-1) 70%, transparent);
+  border: 3px solid var(--acc-1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   cursor: grab;
 }
 
@@ -412,12 +409,12 @@ input[type="range"].slider-neon::-moz-range-thumb {
   animation: float-y 5s ease-in-out infinite;
 }
 
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--neon-1) 45%, transparent); }
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--acc-1) 30%, transparent); }
   50% { box-shadow: 0 0 0 9px transparent; }
 }
 .animate-pulse-glow {
-  animation: pulse-glow 2.2s ease-out infinite;
+  animation: pulse-ring 2.4s ease-out infinite;
 }
 
 @keyframes spin-slow {
@@ -453,7 +450,6 @@ input[type="range"].slider-neon::-moz-range-thumb {
   height: 8px;
   border-radius: 999px;
   background: var(--ok);
-  box-shadow: 0 0 8px var(--ok);
 }
 .dot-live::after {
   content: "";

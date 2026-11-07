@@ -1,9 +1,9 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — hidden admin control center at #/original
+ * EzfaNep — hidden admin control center at #/original
  * (also reachable via /original or ?p=/original).
- * Protected by passcode (default: CIPHER-2077) or admin role.
+ * Protected by username + password (default: ramesh / agrim) or admin role.
  * ============================================================ */
 
 import { AnimatePresence, motion } from "framer-motion";
@@ -35,7 +35,7 @@ import {
   Field,
   GlassCard,
   Modal,
-  NeonButton,
+  AccentButton,
   QRImage,
   SafeImage,
   SectionTitle,
@@ -60,12 +60,12 @@ import {
 } from "@/lib/data";
 import { useToasts } from "@/lib/store";
 import { exportLocalData, resetLocalData, saveFirebaseConfigOverride, getFirebaseConfig } from "@/lib/rtdb";
-import { DEFAULT_CATALOG, DEFAULT_SETTINGS } from "@/lib/defaults";
+import { DEFAULT_ADMIN_PASS_HASH, DEFAULT_ADMIN_USER_HASH, DEFAULT_CATALOG, DEFAULT_SETTINGS } from "@/lib/defaults";
 import { set as dbSet } from "@/lib/rtdb";
 import { fileToCompressedDataUrl, sha256Hex, cn, fmtDateTime, fmtNPR, fmtUSD, genId } from "@/lib/utils";
-import type { FaqEntry, LocalPaymentChannel, Order, OrderStatus, Platform, QuickAction, ServiceType } from "@/lib/types";
+import type { FaqEntry, LocalPaymentChannel, Order, OrderStatus, Platform, QuickAction, ServiceType, Settings } from "@/lib/types";
 
-const LS_ADMIN_OK = "csmm:adminok";
+const LS_ADMIN_OK = "ezfa:adminok";
 
 type Tab = "dashboard" | "orders" | "services" | "payments" | "chatbot" | "links" | "users" | "settings";
 
@@ -74,15 +74,21 @@ type Tab = "dashboard" | "orders" | "services" | "payments" | "chatbot" | "links
 function Gate({ onPass }: { onPass: () => void }) {
   const { t } = useI18n();
   const { settings } = useSettings();
-  const [code, setCode] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [wrong, setWrong] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
-    if (!code.trim()) return;
+    if (!username.trim() || !password) return;
     setBusy(true);
-    const hash = await sha256Hex(code.trim());
-    const ok = hash === (settings.adminPasscodeHash || "");
+    const [userHash, passHash] = await Promise.all([
+      sha256Hex(username.trim().toLowerCase()),
+      sha256Hex(password),
+    ]);
+    const ok =
+      userHash === (settings.adminUserHash || DEFAULT_ADMIN_USER_HASH) &&
+      passHash === (settings.adminPassHash || DEFAULT_ADMIN_PASS_HASH);
     setBusy(false);
     if (ok) {
       try {
@@ -106,9 +112,9 @@ function Gate({ onPass }: { onPass: () => void }) {
             animate={wrong ? { x: [0, -10, 10, -6, 6, 0] } : {}}
             transition={{ duration: 0.4 }}
             className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl"
-            style={{ background: "linear-gradient(135deg, color-mix(in oklab, var(--neon-1) 22%, transparent), color-mix(in oklab, var(--neon-2) 22%, transparent))" }}
+            style={{ background: "linear-gradient(135deg, color-mix(in oklab, var(--acc-1) 22%, transparent), color-mix(in oklab, var(--acc-2) 22%, transparent))" }}
           >
-            <Lock size={26} className={cn(wrong ? "text-red-400" : "text-neon-1")} />
+            <Lock size={26} className={cn(wrong ? "text-red-400" : "text-acc-1")} />
           </motion.div>
           <h1 className="text-xl font-extrabold">{t("admin.gate")}</h1>
           <p className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-muted-foreground">{t("admin.gateSub")}</p>
@@ -121,18 +127,26 @@ function Gate({ onPass }: { onPass: () => void }) {
             }}
           >
             <TextInput
-              type="password"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder={t("admin.passcode")}
-              className={cn("text-center font-mono tracking-[0.4em]", wrong && "!border-red-500")}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder={t("admin.username")}
+              className={cn("text-center font-semibold", wrong && "!border-red-500")}
               autoFocus
+              autoComplete="username"
+            />
+            <TextInput
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder={t("admin.password")}
+              className={cn("text-center font-mono tracking-[0.3em]", wrong && "!border-red-500")}
+              autoComplete="current-password"
             />
             {wrong ? <p className="text-xs font-bold text-red-400">{t("admin.wrong")}</p> : null}
-            <NeonButton type="submit" className="w-full" size="lg" disabled={busy}>
+            <AccentButton type="submit" className="w-full" size="lg" disabled={busy}>
               <KeyRound size={16} />
               {t("admin.enter")}
-            </NeonButton>
+            </AccentButton>
           </form>
         </GlassCard>
       </motion.div>
@@ -145,10 +159,10 @@ function Gate({ onPass }: { onPass: () => void }) {
 function SaveBtn({ onClick, busy }: { onClick: () => void; busy?: boolean }) {
   const { t } = useI18n();
   return (
-    <NeonButton onClick={onClick} disabled={busy} size="sm">
+    <AccentButton onClick={onClick} disabled={busy} size="sm">
       <Save size={13} />
       {t("common.save")}
-    </NeonButton>
+    </AccentButton>
   );
 }
 
@@ -171,11 +185,11 @@ function Dashboard({ orders }: { orders: Order[] }) {
   }, [orders]);
 
   const cards = [
-    { label: t("admin.totalOrders"), value: String(stats.total), icon: <ShoppingBag size={16} />, tint: "var(--neon-1)" },
+    { label: t("admin.totalOrders"), value: String(stats.total), icon: <ShoppingBag size={16} />, tint: "var(--acc-1)" },
     { label: t("orders.pending"), value: String(stats.pending), icon: <Clock size={16} />, tint: "#f59e0b" },
     { label: t("orders.completed"), value: String(stats.completed), icon: <ShieldCheck size={16} />, tint: "var(--ok)" },
-    { label: t("admin.revenue"), value: fmtUSD(stats.revUSD), icon: <Coins size={16} />, tint: "var(--neon-2)" },
-    { label: "Revenue (NPR)", value: fmtNPR(stats.revNPR), icon: <BadgeDollarSign size={16} />, tint: "var(--neon-3)" },
+    { label: t("admin.revenue"), value: fmtUSD(stats.revUSD), icon: <Coins size={16} />, tint: "var(--acc-2)" },
+    { label: "Revenue (NPR)", value: fmtNPR(stats.revNPR), icon: <BadgeDollarSign size={16} />, tint: "var(--acc-3)" },
   ];
 
   return (
@@ -199,7 +213,7 @@ function Dashboard({ orders }: { orders: Order[] }) {
         <div className="space-y-2">
           {orders.slice(0, 5).map((o) => (
             <div key={o.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/60 px-3.5 py-2.5 text-sm">
-              <span className="font-mono font-bold text-neon-1">{o.id}</span>
+              <span className="font-mono font-bold text-acc-1">{o.id}</span>
               <span className="hidden truncate text-muted-foreground sm:block">
                 {o.items?.[0]?.serviceName ?? "—"}
               </span>
@@ -254,7 +268,7 @@ function OrdersAdmin({ orders }: { orders: Order[] }) {
               <GlassCard className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2.5">
-                    <span className="font-mono text-sm font-extrabold text-neon-1">{o.id}</span>
+                    <span className="font-mono text-sm font-extrabold text-acc-1">{o.id}</span>
                     <StatusBadge status={o.status} label={o.status} />
                   </div>
                   <span className="text-[11px] text-muted-foreground">{fmtDateTime(o.createdAt)}</span>
@@ -299,18 +313,18 @@ function OrdersAdmin({ orders }: { orders: Order[] }) {
 
                 <div className="mt-3 flex flex-wrap gap-2">
                   {o.status === "pending" ? (
-                    <NeonButton size="sm" onClick={() => void act(o.id, "processing")}>
+                    <AccentButton size="sm" onClick={() => void act(o.id, "processing")}>
                       <ShieldCheck size={13} />
                       {t("admin.verify")}
-                    </NeonButton>
+                    </AccentButton>
                   ) : null}
                   {o.status === "processing" ? (
-                    <NeonButton size="sm" onClick={() => void act(o.id, "completed")}>
+                    <AccentButton size="sm" onClick={() => void act(o.id, "completed")}>
                       ✓ {t("admin.complete")}
-                    </NeonButton>
+                    </AccentButton>
                   ) : null}
                   {o.status !== "rejected" && o.status !== "completed" ? (
-                    <NeonButton
+                    <AccentButton
                       size="sm"
                       variant="danger"
                       onClick={() => {
@@ -320,13 +334,13 @@ function OrdersAdmin({ orders }: { orders: Order[] }) {
                     >
                       <X size={13} />
                       {t("admin.reject")}
-                    </NeonButton>
+                    </AccentButton>
                   ) : null}
                   {o.status === "rejected" ? (
-                    <NeonButton size="sm" variant="ghost" onClick={() => void act(o.id, "processing")}>
+                    <AccentButton size="sm" variant="ghost" onClick={() => void act(o.id, "processing")}>
                       <RefreshCw size={13} />
                       Reopen
-                    </NeonButton>
+                    </AccentButton>
                   ) : null}
                 </div>
               </GlassCard>
@@ -343,10 +357,10 @@ function OrdersAdmin({ orders }: { orders: Order[] }) {
           <TextArea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Wrong TxID / insufficient amount…" />
         </Field>
         <div className="mt-4 flex justify-end gap-2">
-          <NeonButton variant="ghost" size="sm" onClick={() => setRejectId(null)}>
+          <AccentButton variant="ghost" size="sm" onClick={() => setRejectId(null)}>
             {t("common.cancel")}
-          </NeonButton>
-          <NeonButton
+          </AccentButton>
+          <AccentButton
             variant="danger"
             size="sm"
             onClick={() => {
@@ -355,7 +369,7 @@ function OrdersAdmin({ orders }: { orders: Order[] }) {
             }}
           >
             {t("admin.reject")}
-          </NeonButton>
+          </AccentButton>
         </div>
       </Modal>
     </div>
@@ -475,14 +489,14 @@ function ServiceEditor({
               </button>
             </div>
           ))}
-          <NeonButton
+          <AccentButton
             size="sm"
             variant="ghost"
             onClick={() => upd({ packages: [...(s.packages ?? []), { id: genId("pkg"), label: "", qty: 0, priceUSD: 0 }] })}
           >
             <Plus size={13} />
             {t("admin.addPackage")}
-          </NeonButton>
+          </AccentButton>
         </div>
       )}
 
@@ -500,10 +514,10 @@ function ServiceEditor({
       </Field>
 
       <div className="flex justify-end gap-2">
-        <NeonButton variant="ghost" size="sm" onClick={onClose}>
+        <AccentButton variant="ghost" size="sm" onClick={onClose}>
           {t("common.cancel")}
-        </NeonButton>
-        <NeonButton
+        </AccentButton>
+        <AccentButton
           size="sm"
           onClick={() => {
             if (!s.name.trim()) return;
@@ -516,7 +530,7 @@ function ServiceEditor({
         >
           <Save size={13} />
           {lang === "en" ? "Save service" : t("common.save")}
-        </NeonButton>
+        </AccentButton>
       </div>
       <p className="text-[10px] text-muted-foreground">Platform: {platformKind}</p>
     </div>
@@ -549,7 +563,7 @@ function ServicesAdmin() {
               onClick={() => setSelId(p.id)}
               className={cn(
                 "flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all lg:w-full",
-                sel?.id === p.id ? "pill-active bg-accent" : "border-border/70 hover:border-neon-1/35",
+                sel?.id === p.id ? "pill-active bg-accent" : "border-border/70 hover:border-acc-1/35",
               )}
             >
               <PlatformIcon id={p.id} size={16} />
@@ -558,7 +572,7 @@ function ServicesAdmin() {
             </button>
           ))}
         </div>
-        <NeonButton
+        <AccentButton
           size="sm"
           variant="ghost"
           className="w-full"
@@ -569,7 +583,7 @@ function ServicesAdmin() {
         >
           <Plus size={13} />
           Add platform
-        </NeonButton>
+        </AccentButton>
       </div>
 
       <div className="space-y-3">
@@ -580,10 +594,10 @@ function ServicesAdmin() {
                 <PlatformIcon id={sel.id} size={18} />
                 {sel.name}
               </h3>
-              <NeonButton size="sm" onClick={() => setEditing(emptyService())}>
+              <AccentButton size="sm" onClick={() => setEditing(emptyService())}>
                 <Plus size={13} />
                 {t("admin.addService")}
-              </NeonButton>
+              </AccentButton>
             </div>
 
             {sel.services.map((s) => (
@@ -606,9 +620,9 @@ function ServicesAdmin() {
                     );
                   }}
                 />
-                <NeonButton size="sm" variant="ghost" onClick={() => setEditing(s)}>
+                <AccentButton size="sm" variant="ghost" onClick={() => setEditing(s)}>
                   {t("common.edit")}
-                </NeonButton>
+                </AccentButton>
                 <button
                   onClick={() => {
                     if (confirm(t("admin.confirmDelete"))) {
@@ -674,10 +688,10 @@ function ServicesAdmin() {
             <TextInput value={np.color} onChange={(e) => setNp({ ...np, color: e.target.value })} placeholder="#22d3ee" />
           </Field>
           <div className="flex justify-end gap-2">
-            <NeonButton variant="ghost" size="sm" onClick={() => setPlatformModal(false)}>
+            <AccentButton variant="ghost" size="sm" onClick={() => setPlatformModal(false)}>
               {t("common.cancel")}
-            </NeonButton>
-            <NeonButton
+            </AccentButton>
+            <AccentButton
               size="sm"
               onClick={() => {
                 if (!np.id || !np.name) return;
@@ -687,7 +701,7 @@ function ServicesAdmin() {
               }}
             >
               {t("common.add")}
-            </NeonButton>
+            </AccentButton>
           </div>
         </div>
       </Modal>
@@ -712,7 +726,7 @@ function ChannelEditor({
     <GlassCard className="space-y-3 p-5">
       <div className="flex items-center justify-between">
         <h4 className="flex items-center gap-2 text-sm font-bold">
-          <Wallet size={14} className="text-neon-1" />
+          <Wallet size={14} className="text-acc-1" />
           {name}
         </h4>
         <div className="flex items-center gap-2">
@@ -733,7 +747,7 @@ function ChannelEditor({
       </Field>
       <div className="flex flex-wrap items-center gap-3">
         <label className="glass flex cursor-pointer items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold">
-          <ImageIcon size={13} className="text-neon-1" />
+          <ImageIcon size={13} className="text-acc-1" />
           {t("admin.uploadQr")}
           <input
             type="file"
@@ -793,7 +807,7 @@ function PaymentsAdmin() {
       <GlassCard className="space-y-4 p-5">
         <div className="flex items-center justify-between">
           <h4 className="flex items-center gap-2 text-sm font-bold">
-            <Coins size={14} className="text-neon-2" />
+            <Coins size={14} className="text-acc-2" />
             Crypto wallets
           </h4>
           <div className="flex items-center gap-2">
@@ -832,14 +846,14 @@ function PaymentsAdmin() {
           </div>
         ))}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <NeonButton
+          <AccentButton
             size="sm"
             variant="ghost"
             onClick={() => setCrypto({ ...crypto, wallets: [...crypto.wallets, { id: genId("w"), network: "", address: "" }] })}
           >
             <Plus size={13} />
             {t("admin.addWallet")}
-          </NeonButton>
+          </AccentButton>
           <QRImage value={crypto.wallets[0]?.address ?? ""} size={90} caption="preview" />
         </div>
         <Field label="Crypto instructions">
@@ -854,10 +868,10 @@ function PaymentsAdmin() {
       </div>
 
       <div className="sticky bottom-4 z-10 flex justify-end">
-        <NeonButton onClick={() => void save()} size="lg">
+        <AccentButton onClick={() => void save()} size="lg">
           <Save size={15} />
           {t("common.save")} — Payments
-        </NeonButton>
+        </AccentButton>
       </div>
     </div>
   );
@@ -887,7 +901,7 @@ function ChatbotAdmin() {
       <GlassCard className="space-y-4 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h4 className="flex items-center gap-2 text-sm font-bold">
-            <Bot size={15} className="text-neon-1" />
+            <Bot size={15} className="text-acc-1" />
             AI Chatbot
           </h4>
           <div className="flex items-center gap-2">
@@ -923,7 +937,7 @@ function ChatbotAdmin() {
             </button>
           </div>
         ))}
-        <NeonButton
+        <AccentButton
           size="sm"
           variant="ghost"
           onClick={() =>
@@ -932,7 +946,7 @@ function ChatbotAdmin() {
         >
           <Plus size={13} />
           {t("common.add")}
-        </NeonButton>
+        </AccentButton>
       </GlassCard>
 
       <GlassCard className="space-y-3 p-5">
@@ -952,14 +966,14 @@ function ChatbotAdmin() {
             <TextArea value={f.a} onChange={(e) => updFaq(f.id, { a: e.target.value })} placeholder="Answer" className="min-h-16" />
           </div>
         ))}
-        <NeonButton
+        <AccentButton
           size="sm"
           variant="ghost"
           onClick={() => setCfg({ ...cfg, faqs: [...cfg.faqs, { id: genId("faq"), q: "", a: "" }] })}
         >
           <Plus size={13} />
           {t("admin.addFaq")}
-        </NeonButton>
+        </AccentButton>
       </GlassCard>
 
       <GlassCard className="space-y-3 p-5">
@@ -981,10 +995,10 @@ function ChatbotAdmin() {
       </GlassCard>
 
       <div className="sticky bottom-4 z-10 flex justify-end">
-        <NeonButton onClick={() => void save()} size="lg">
+        <AccentButton onClick={() => void save()} size="lg">
           <Save size={15} />
           {t("common.save")}
-        </NeonButton>
+        </AccentButton>
       </div>
     </div>
   );
@@ -1011,7 +1025,7 @@ function LinksAdmin() {
     <div className="space-y-4">
       <GlassCard className="space-y-3 p-5">
         <h4 className="flex items-center gap-2 text-sm font-bold">
-          <Link2 size={15} className="text-neon-1" />
+          <Link2 size={15} className="text-acc-1" />
           Contact & social links (footer, chat, account)
         </h4>
         {fields.map((f) => (
@@ -1025,7 +1039,7 @@ function LinksAdmin() {
         ))}
       </GlassCard>
       <div className="flex justify-end">
-        <NeonButton
+        <AccentButton
           onClick={async () => {
             const ok = await saveSettingsPatch({ social });
             push(ok ? "success" : "info", t("admin.saved"), ok ? "✓" : "queued");
@@ -1033,7 +1047,7 @@ function LinksAdmin() {
         >
           <Save size={14} />
           {t("common.save")}
-        </NeonButton>
+        </AccentButton>
       </div>
     </div>
   );
@@ -1052,13 +1066,13 @@ function UsersAdmin() {
         <GlassCard key={u.uid} className="flex flex-wrap items-center gap-3 p-4">
           <span
             className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-extrabold text-white"
-            style={{ background: "linear-gradient(135deg, var(--neon-1), var(--neon-2))" }}
+            style={{ background: "linear-gradient(135deg, var(--acc-1), var(--acc-2))" }}
           >
             {(u.name || "G").slice(0, 1).toUpperCase()}
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-bold">
-              {u.name} {me?.uid === u.uid ? <span className="text-[10px] font-bold text-neon-1">(you)</span> : null}
+              {u.name} {me?.uid === u.uid ? <span className="text-[10px] font-bold text-acc-1">(you)</span> : null}
             </p>
             <p className="truncate text-xs text-muted-foreground">
               {u.email ?? "—"} · {u.provider} · {new Date(u.createdAt).toLocaleDateString()}
@@ -1094,7 +1108,8 @@ function SettingsAdmin() {
   const [siteName, setSiteName] = useState(settings.siteName);
   const [tagline, setTagline] = useState(settings.tagline);
   const [hours, setHours] = useState(settings.supportHours ?? "");
-  const [pass, setPass] = useState("");
+  const [newUser, setNewUser] = useState("");
+  const [newPass, setNewPass] = useState("");
   const [fbJson, setFbJson] = useState(() => {
     try {
       const cfg = getFirebaseConfig();
@@ -1110,7 +1125,7 @@ function SettingsAdmin() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ciphersmm-backup-${Date.now()}.json`;
+      a.download = `ezfanep-backup-${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -1133,7 +1148,7 @@ function SettingsAdmin() {
         <Field label="Support hours">
           <TextInput value={hours} onChange={(e) => setHours(e.target.value)} placeholder="24/7 live support" />
         </Field>
-        <NeonButton
+        <AccentButton
           size="sm"
           onClick={async () => {
             const ok = await saveSettingsPatch({ siteName, tagline, supportHours: hours });
@@ -1142,36 +1157,50 @@ function SettingsAdmin() {
         >
           <Save size={13} />
           {t("common.save")}
-        </NeonButton>
+        </AccentButton>
       </GlassCard>
 
       <GlassCard className="space-y-3 p-5">
         <h4 className="flex items-center gap-2 text-sm font-bold">
-          <Lock size={14} className="text-neon-2" />
-          Admin passcode
+          <Lock size={14} className="text-acc-2" />
+          Admin credentials
         </h4>
         <div className="flex flex-wrap items-end gap-3">
-          <Field label={t("admin.passcodeNew")} className="w-64">
-            <TextInput type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="••••••••" />
+          <Field label={t("admin.userNew")} className="w-64">
+            <TextInput value={newUser} onChange={(e) => setNewUser(e.target.value)} placeholder="ramesh" autoComplete="off" />
           </Field>
-          <NeonButton
+          <Field label={t("admin.passNew")} className="w-64">
+            <TextInput type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} placeholder="••••••••" />
+          </Field>
+          <AccentButton
             size="sm"
             onClick={async () => {
-              if (pass.trim().length < 6) {
-                push("error", t("auth.errPass"));
+              const patch: Partial<Settings> = {};
+              if (newUser.trim()) {
+                patch.adminUserHash = await sha256Hex(newUser.trim().toLowerCase());
+              }
+              if (newPass) {
+                if (newPass.length < 6) {
+                  push("error", t("auth.errPass"));
+                  return;
+                }
+                patch.adminPassHash = await sha256Hex(newPass);
+              }
+              if (Object.keys(patch).length === 0) {
+                push("info", t("admin.saved"), "nothing changed");
                 return;
               }
-              const hash = await sha256Hex(pass.trim());
-              const ok = await saveSettingsPatch({ adminPasscodeHash: hash });
-              push(ok ? "success" : "info", t("admin.saved"), "passcode updated");
-              setPass("");
+              const ok = await saveSettingsPatch(patch);
+              push(ok ? "success" : "info", t("admin.saved"), "admin credentials updated");
+              setNewUser("");
+              setNewPass("");
             }}
           >
             <KeyRound size={13} />
             Update
-          </NeonButton>
+          </AccentButton>
         </div>
-        <p className="text-[11px] text-muted-foreground">Default passcode on fresh installs: CIPHER-2077 — change it here.</p>
+        <p className="text-[11px] text-muted-foreground">Default credentials on fresh installs: ramesh / agrim — change them here.</p>
       </GlassCard>
 
       <GlassCard className="space-y-3 p-5">
@@ -1184,7 +1213,7 @@ function SettingsAdmin() {
           className="min-h-32 font-mono text-xs"
         />
         <div className="flex flex-wrap gap-2">
-          <NeonButton
+          <AccentButton
             size="sm"
             onClick={() => {
               try {
@@ -1203,8 +1232,8 @@ function SettingsAdmin() {
           >
             <Save size={13} />
             Apply & reload
-          </NeonButton>
-          <NeonButton
+          </AccentButton>
+          <AccentButton
             size="sm"
             variant="ghost"
             onClick={() => {
@@ -1214,21 +1243,21 @@ function SettingsAdmin() {
             }}
           >
             Reset
-          </NeonButton>
+          </AccentButton>
         </div>
       </GlassCard>
 
       <GlassCard className="space-y-3 p-5">
         <h4 className="flex items-center gap-2 text-sm font-bold">
-          <Download size={14} className="text-neon-3" />
+          <Download size={14} className="text-acc-3" />
           {t("admin.exportData")}
         </h4>
         <div className="flex flex-wrap gap-2">
-          <NeonButton size="sm" variant="ghost" onClick={download}>
+          <AccentButton size="sm" variant="ghost" onClick={download}>
             <Download size={13} />
             {t("admin.exportData")}
-          </NeonButton>
-          <NeonButton
+          </AccentButton>
+          <AccentButton
             size="sm"
             variant="ghost"
             onClick={() => {
@@ -1238,8 +1267,8 @@ function SettingsAdmin() {
           >
             <Trash2 size={13} />
             {t("admin.resetCache")}
-          </NeonButton>
-          <NeonButton
+          </AccentButton>
+          <AccentButton
             size="sm"
             variant="ghost"
             onClick={async () => {
@@ -1250,7 +1279,7 @@ function SettingsAdmin() {
           >
             <RefreshCw size={13} />
             Re-seed defaults
-          </NeonButton>
+          </AccentButton>
         </div>
       </GlassCard>
     </div>
@@ -1293,7 +1322,7 @@ export function AdminView() {
 
   return (
     <section className="mx-auto max-w-6xl px-4 pb-24 pt-24 sm:px-6 sm:pt-28">
-      <SectionTitle eyebrow={`#/original — ${user?.role === "admin" ? "role: admin" : "passcode ok"}`} title={t("admin.title")} />
+      <SectionTitle eyebrow={`#/original — ${user?.role === "admin" ? "role: admin" : "access unlocked"}`} title={t("admin.title")} />
 
       <div className="no-scrollbar mb-6 flex gap-2 overflow-x-auto pb-1">
         {tabs.map((tb) => (
@@ -1302,7 +1331,7 @@ export function AdminView() {
             onClick={() => setTab(tb.id)}
             className={cn(
               "glass flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all",
-              tab === tb.id && "pill-active text-neon-1",
+              tab === tb.id && "pill-active text-acc-1",
             )}
           >
             {tb.icon}

@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — home view: hero, category pills, configurator,
+ * EzfaNep — home view: hero, category pills, configurator,
  * live pricing, stats, features, how-it-works.
  * ============================================================ */
 
@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PlatformIcon } from "@/components/icons";
-import { CountUp, GlassCard, NeonButton, SectionTitle, Segmented, TextInput } from "@/components/ui-kit";
+import { CountUp, GlassCard, AccentButton, SectionTitle, Segmented, TextInput } from "@/components/ui-kit";
 import { Tx, useI18n } from "@/lib/i18n";
 import { useCatalog, useSettings } from "@/lib/data";
 import { useDraft, useUI } from "@/lib/store";
@@ -84,7 +84,7 @@ export function Hero() {
         >
           {t("hero.title1")}
           <br />
-          <span className="text-gradient glow-cyan">{t("hero.title2")}</span>
+          <span className="text-gradient soft-emboss">{t("hero.title2")}</span>
         </motion.h1>
 
         <motion.p
@@ -102,14 +102,14 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.28 }}
           className="mt-8 flex flex-wrap items-center justify-center gap-3"
         >
-          <NeonButton size="lg" onClick={scrollToShop}>
+          <AccentButton size="lg" onClick={scrollToShop}>
             <Rocket size={17} />
             {t("hero.cta1")}
-          </NeonButton>
-          <NeonButton size="lg" variant="ghost" onClick={scrollToShop}>
+          </AccentButton>
+          <AccentButton size="lg" variant="ghost" onClick={scrollToShop}>
             {t("hero.cta2")}
             <ChevronRight size={16} />
-          </NeonButton>
+          </AccentButton>
         </motion.div>
 
         {/* stats */}
@@ -241,7 +241,7 @@ function ServiceRow({
         "group flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-300",
         active
           ? "pill-active bg-accent"
-          : "border-border/70 bg-transparent hover:border-neon-1/35 hover:bg-muted/60",
+          : "border-border/70 bg-transparent hover:border-acc-1/35 hover:bg-muted/60",
       )}
     >
       <span className="min-w-0">
@@ -255,7 +255,7 @@ function ServiceRow({
           </span>
         ) : null}
       </span>
-      <ChevronRight size={15} className={cn("shrink-0 transition-transform group-hover:translate-x-0.5", active ? "text-neon-1" : "text-muted-foreground")} />
+      <ChevronRight size={15} className={cn("shrink-0 transition-transform group-hover:translate-x-0.5", active ? "text-acc-1" : "text-muted-foreground")} />
     </button>
   );
 }
@@ -428,7 +428,7 @@ export function Configurator({
 
                     <input
                       type="range"
-                      className="slider-neon"
+                      className="slider-accent"
                       style={{ ["--fill" as string]: sliderFill }}
                       min={service.minQty ?? 100}
                       max={service.maxQty ?? 100000}
@@ -485,7 +485,7 @@ export function Configurator({
                             onClick={() => setPackageId(pk.id)}
                             className={cn(
                               "relative rounded-xl border p-3 text-left transition-all duration-300",
-                              activeP ? "pill-active bg-accent" : "border-border/70 hover:border-neon-1/35",
+                              activeP ? "pill-active bg-accent" : "border-border/70 hover:border-acc-1/35",
                             )}
                           >
                             {pk.hot ? (
@@ -495,7 +495,7 @@ export function Configurator({
                             ) : null}
                             <p className="text-sm font-bold">{pk.label}</p>
                             {pk.bonus ? <p className="text-[10px] font-semibold text-emerald-500">{pk.bonus}</p> : null}
-                            <p className="mt-1 font-mono text-xs text-neon-1">
+                            <p className="mt-1 font-mono text-xs text-acc-1">
                               {currency === "NPR" ? fmtNPR(convertUSD(pk.priceUSD, settings.exchangeRate)) : fmtUSD(pk.priceUSD)}
                             </p>
                           </motion.button>
@@ -517,7 +517,7 @@ export function Configurator({
                 ) : null}
 
                 {/* price + buy */}
-                <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-neon-1/25 bg-gradient-to-r from-[color-mix(in_oklab,var(--neon-1)_10%,transparent)] to-[color-mix(in_oklab,var(--neon-2)_10%,transparent)] p-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-acc-1/25 bg-gradient-to-r from-[color-mix(in_oklab,var(--acc-1)_10%,transparent)] to-[color-mix(in_oklab,var(--acc-2)_10%,transparent)] p-4">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       {t("shop.price")}
@@ -535,10 +535,10 @@ export function Configurator({
                       </motion.p>
                     </AnimatePresence>
                   </div>
-                  <NeonButton size="lg" onClick={buy} disabled={!price.valid || price.usd <= 0}>
+                  <AccentButton size="lg" onClick={buy} disabled={!price.valid || price.usd <= 0}>
                     <ShoppingBag size={16} />
                     {t("shop.buyNow")}
-                  </NeonButton>
+                  </AccentButton>
                 </div>
 
                 {err ? (
@@ -591,9 +591,9 @@ export function ShopSection() {
 export function Features() {
   const { t } = useI18n();
   const features = [
-    { icon: <Zap size={20} />, title: t("hero.stat4"), desc: t("hero.sub"), tint: "var(--neon-1)" },
-    { icon: <ShieldCheck size={20} />, title: "100% Safe", desc: "No passwords needed — only public links & game UIDs. Privacy-first delivery.", tint: "var(--neon-2)" },
-    { icon: <Bot size={20} />, title: t("chat.title"), desc: "AI assistant answers pricing & order questions instantly, 24/7.", tint: "var(--neon-3)" },
+    { icon: <Zap size={20} />, title: t("hero.stat4"), desc: t("hero.sub"), tint: "var(--acc-1)" },
+    { icon: <ShieldCheck size={20} />, title: "100% Safe", desc: "No passwords needed — only public links & game UIDs. Privacy-first delivery.", tint: "var(--acc-2)" },
+    { icon: <Bot size={20} />, title: t("chat.title"), desc: "AI assistant answers pricing & order questions instantly, 24/7.", tint: "var(--acc-3)" },
     { icon: <BadgePercent size={20} />, title: "Best Rates", desc: "Live USD ⇄ NPR conversion with the lowest prices in Nepal — updated by the store.", tint: "var(--ok)" },
   ];
   return (
@@ -637,7 +637,7 @@ export function HowItWorks() {
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
       <SectionTitle eyebrow="HOW IT WORKS" title={t("shop.title")} center />
       <div className="relative grid gap-4 md:grid-cols-3">
-        <div className="absolute left-[16%] right-[16%] top-10 hidden h-px bg-gradient-to-r from-neon-1/40 via-neon-2/40 to-neon-3/40 md:block" />
+        <div className="absolute left-[16%] right-[16%] top-10 hidden h-px bg-gradient-to-r from-acc-1/40 via-acc-2/40 to-acc-3/40 md:block" />
         {steps.map((s, i) => (
           <motion.div
             key={s.title + String(i)}
@@ -647,9 +647,9 @@ export function HowItWorks() {
             transition={{ delay: i * 0.12, duration: 0.5 }}
             className="relative text-center"
           >
-            <div className="glass relative z-10 mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl" style={{ color: "var(--neon-1)" }}>
+            <div className="glass relative z-10 mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl" style={{ color: "var(--acc-1)" }}>
               {s.icon}
-              <span className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full font-mono text-[11px] font-extrabold text-white" style={{ background: "linear-gradient(135deg, var(--neon-1), var(--neon-2))" }}>
+              <span className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full font-mono text-[11px] font-extrabold text-white" style={{ background: "linear-gradient(135deg, var(--acc-1), var(--acc-2))" }}>
                 {i + 1}
               </span>
             </div>

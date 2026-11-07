@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — checkout: payment methods, QR rendering,
+ * EzfaNep — checkout: payment methods, QR rendering,
  * transaction submission & order creation.
  * ============================================================ */
 
@@ -22,7 +22,7 @@ import {
   Field,
   GlassCard,
   Modal,
-  NeonButton,
+  AccentButton,
   QRImage,
   SafeImage,
   SectionTitle,
@@ -160,17 +160,17 @@ export function CheckoutView() {
               const ok = await copyText(done.id);
               if (ok) push("success", t("checkout.orderIdCopy"), done.id);
             }}
-            className="glass mx-auto mt-6 flex items-center gap-2 rounded-xl px-5 py-3 font-mono text-lg font-extrabold tracking-widest text-neon-1 transition-transform hover:scale-[1.03]"
+            className="glass mx-auto mt-6 flex items-center gap-2 rounded-xl px-5 py-3 font-mono text-lg font-extrabold tracking-widest text-acc-1 transition-transform hover:scale-[1.03]"
           >
             {done.id}
             <Copy size={15} />
           </button>
 
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <NeonButton onClick={() => navigate("/orders")}>{t("checkout.viewOrders")}</NeonButton>
-            <NeonButton variant="ghost" onClick={() => navigate("/")}>
+            <AccentButton onClick={() => navigate("/orders")}>{t("checkout.viewOrders")}</AccentButton>
+            <AccentButton variant="ghost" onClick={() => navigate("/")}>
               {t("checkout.back")}
-            </NeonButton>
+            </AccentButton>
           </div>
         </GlassCard>
       </section>
@@ -185,10 +185,10 @@ export function CheckoutView() {
           icon={<Wallet size={26} />}
           title={t("checkout.empty")}
           action={
-            <NeonButton onClick={() => navigate("/")}>
+            <AccentButton onClick={() => navigate("/")}>
               <ArrowLeft size={15} />
               {t("checkout.back")}
-            </NeonButton>
+            </AccentButton>
           }
         />
       </section>
@@ -279,7 +279,7 @@ export function CheckoutView() {
                   <Tx text={service.name} />
                 </p>
                 <p className="text-xs text-muted-foreground">{platform.name}</p>
-                <p className="mt-1 font-mono text-xs text-neon-1">
+                <p className="mt-1 font-mono text-xs text-acc-1">
                   {pk ? pk.label : `${(item.quantity ?? 0).toLocaleString()} ${platform.unit}`}
                 </p>
               </div>
@@ -338,11 +338,11 @@ export function CheckoutView() {
                     onClick={() => setMethod(m.id)}
                     className={cn(
                       "flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-all duration-300",
-                      isActive ? "pill-active bg-accent" : "border-border/70 hover:border-neon-1/35",
+                      isActive ? "pill-active bg-accent" : "border-border/70 hover:border-acc-1/35",
                     )}
                     aria-pressed={isActive}
                   >
-                    <PayGlyph method={m.id === "bank" ? "bank" : m.id} size={m.id === "esewa" || m.id === "khalti" ? 30 : 20} className={cn(m.id === "crypto" || m.id === "bank" ? "text-neon-1" : "")} />
+                    <PayGlyph method={m.id === "bank" ? "bank" : m.id} size={m.id === "esewa" || m.id === "khalti" ? 30 : 20} className={cn(m.id === "crypto" || m.id === "bank" ? "text-acc-1" : "")} />
                     <span className="text-xs font-bold">{m.label}</span>
                   </motion.button>
                 );
@@ -368,7 +368,7 @@ export function CheckoutView() {
                             onClick={() => setWalletIdx(i)}
                             className={cn(
                               "rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors",
-                              i === walletIdx ? "border-neon-1/60 bg-accent text-accent-foreground" : "border-border/70 text-muted-foreground hover:text-foreground",
+                              i === walletIdx ? "border-acc-1/60 bg-accent text-accent-foreground" : "border-border/70 text-muted-foreground hover:text-foreground",
                             )}
                           >
                             {w.network}
@@ -437,8 +437,8 @@ export function CheckoutView() {
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-3">
-              <label className="glass flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-colors hover:border-neon-1/40">
-                <ImageIcon size={14} className="text-neon-1" />
+              <label className="glass flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-colors hover:border-acc-1/40">
+                <ImageIcon size={14} className="text-acc-1" />
                 {t("checkout.upload")}
                 <input
                   type="file"
@@ -472,7 +472,7 @@ export function CheckoutView() {
                 <ArrowLeft size={13} />
                 {t("checkout.back")}
               </button>
-              <NeonButton size="lg" onClick={submit} disabled={submitting}>
+              <AccentButton size="lg" onClick={submit} disabled={submitting}>
                 {submitting ? (
                   <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }} className="flex">
                     <CheckCircle2 size={16} />
@@ -481,7 +481,7 @@ export function CheckoutView() {
                   <BadgeCheck size={16} />
                 )}
                 {submitting ? t("checkout.submitting") : t("checkout.submit")}
-              </NeonButton>
+              </AccentButton>
             </div>
           </GlassCard>
         </div>

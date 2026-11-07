@@ -1,5 +1,5 @@
 /* ============================================================
- * CipherSMM — Core domain types
+ * EzfaNep — Core domain types
  * Shared across the data layer, stores, views and admin panel.
  * ============================================================ */
 
@@ -195,8 +195,10 @@ export interface Settings {
   payments: PaymentSettings;
   chatbot: ChatbotSettings;
   social: SocialLinks;
-  /** sha256 hex of the admin passcode (default passcode: CIPHER-2077) */
-  adminPasscodeHash: string;
+  /** sha256 hex of the admin username (default: ramesh) — changeable in admin panel */
+  adminUserHash: string;
+  /** sha256 hex of the admin password (default: agrim) — changeable in admin panel */
+  adminPassHash: string;
   supportHours?: string;
   updatedAt?: number;
 }

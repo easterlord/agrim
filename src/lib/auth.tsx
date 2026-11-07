@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — multi-provider authentication.
+ * EzfaNep — multi-provider authentication.
  *
  * • Firebase mode (when apiKey/authDomain/appId are configured via
  *   env vars or the Admin ▸ Settings panel): Google OAuth, Apple ID,
@@ -42,8 +42,8 @@ import { saveUserProfile } from "./data";
 import { randomHex, sha256Hex } from "./utils";
 import type { AuthProviderId, UserProfile } from "./types";
 
-const LS_SESSION = "csmm:session";
-const LS_LOCAL_USERS = "csmm:localUsers";
+const LS_SESSION = "ezfa:session";
+const LS_LOCAL_USERS = "ezfa:localUsers";
 
 export interface AuthResult {
   ok: boolean;
@@ -159,9 +159,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!firebaseAuthConfigured()) return null;
     try {
       const cfg = getFirebaseConfig();
-      const existing = getApps().find((a) => a.name === "ciphersmm-auth");
+      const existing = getApps().find((a) => a.name === "ezfanep-auth");
       const app: FirebaseApp =
-        existing ?? initializeApp({ ...cfg }, "ciphersmm-auth");
+        existing ?? initializeApp({ ...cfg }, "ezfanep-auth");
       return getAuth(app);
     } catch {
       return null;
@@ -401,7 +401,7 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
-/** promote a locally-logged-in user to admin (used by the passcode gate) */
+/** promote a locally-logged-in user to admin (used by the admin gate) */
 export function elevateLocalAdmin() {
   try {
     const session = readSession();

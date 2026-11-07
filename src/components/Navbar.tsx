@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — glass navbar: routing, currency, language, theme
+ * EzfaNep — glass navbar: routing, currency, language, theme
  * ============================================================ */
 
 import { AnimatePresence, motion, useScroll, useMotionValueEvent } from "framer-motion";
@@ -106,8 +106,8 @@ export function Navbar() {
                     layoutId="nav-active"
                     className="absolute inset-0 rounded-lg"
                     style={{
-                      background: "color-mix(in oklab, var(--neon-1) 14%, transparent)",
-                      boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--neon-1) 35%, transparent)",
+                      background: "color-mix(in oklab, var(--acc-1) 14%, transparent)",
+                      boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--acc-1) 35%, transparent)",
                     }}
                   />
                 ) : null}
@@ -135,7 +135,7 @@ export function Navbar() {
                 onClick={() => setCurrency(c)}
                 className={cn(
                   "relative rounded-full px-2.5 py-1 font-mono text-[11px] font-bold transition-colors",
-                  currency === c ? "text-neon-1" : "text-muted-foreground hover:text-foreground",
+                  currency === c ? "text-acc-1" : "text-muted-foreground hover:text-foreground",
                 )}
                 aria-pressed={currency === c}
               >
@@ -143,7 +143,7 @@ export function Navbar() {
                   <motion.span
                     layoutId="currency-pill"
                     className="absolute inset-0 rounded-full"
-                    style={{ background: "color-mix(in oklab, var(--neon-1) 16%, transparent)" }}
+                    style={{ background: "color-mix(in oklab, var(--acc-1) 16%, transparent)" }}
                     transition={{ type: "spring", stiffness: 500, damping: 36 }}
                   />
                 ) : null}
@@ -156,7 +156,7 @@ export function Navbar() {
           <div className="relative" ref={langRef}>
             <button
               onClick={() => setLangOpen((v) => !v)}
-              className="glass flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-semibold transition-colors hover:text-neon-1"
+              className="glass flex items-center gap-1 rounded-full px-2.5 py-1.5 text-xs font-semibold transition-colors hover:text-acc-1"
               aria-label="Change language"
               aria-expanded={langOpen}
             >
@@ -188,7 +188,7 @@ export function Navbar() {
                       <span>
                         {l.flag} {l.label}
                       </span>
-                      {lang === l.id ? <Check size={14} className="text-neon-1" /> : null}
+                      {lang === l.id ? <Check size={14} className="text-acc-1" /> : null}
                     </button>
                   ))}
                 </motion.div>
@@ -221,12 +221,12 @@ export function Navbar() {
             <div className="relative hidden sm:block">
               <HashLink
                 to="/account"
-                className="glass flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors hover:border-neon-1/50"
+                className="glass flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors hover:border-acc-1/50"
                 aria-label={t("nav.account")}
               >
                 <span
                   className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white"
-                  style={{ background: "linear-gradient(135deg, var(--neon-1), var(--neon-2))" }}
+                  style={{ background: "linear-gradient(135deg, var(--acc-1), var(--acc-2))" }}
                 >
                   {(user.name || "G").slice(0, 1).toUpperCase()}
                 </span>
@@ -236,7 +236,7 @@ export function Navbar() {
           ) : (
             <button
               onClick={() => navigate("/login")}
-              className="btn-neon hidden items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold sm:flex"
+              className="btn-accent hidden items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-bold sm:flex"
             >
               <LogIn size={13} />
               {t("nav.login")}
@@ -308,7 +308,7 @@ export function Navbar() {
                 </button>
               ) : null}
               {user?.role === "admin" ? (
-                <HashLink to="/original" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-neon-1 hover:bg-muted">
+                <HashLink to="/original" onClick={() => setMenuOpen(false)} className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-acc-1 hover:bg-muted">
                   <LayoutDashboard size={16} />
                   {t("nav.admin")}
                 </HashLink>

@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — floating AI support assistant (admin-configurable)
+ * EzfaNep — floating AI support assistant (admin-configurable)
  * ============================================================ */
 
 import { AnimatePresence, motion } from "framer-motion";
@@ -106,7 +106,7 @@ export function ChatWidget() {
         whileTap={{ scale: 0.92 }}
         onClick={() => setChatOpen(!chatOpen)}
         aria-label={t("chat.title")}
-        className="btn-neon fixed bottom-5 right-5 z-[80] flex h-14 w-14 items-center justify-center rounded-full shadow-2xl pb-safe"
+        className="btn-accent fixed bottom-5 right-5 z-[80] flex h-14 w-14 items-center justify-center rounded-full shadow-2xl pb-safe"
       >
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
@@ -143,7 +143,7 @@ export function ChatWidget() {
               <div className="flex items-center gap-3 border-b border-border/60 p-4">
                 <span
                   className="relative flex h-10 w-10 items-center justify-center rounded-xl text-white"
-                  style={{ background: "linear-gradient(135deg, var(--neon-1), var(--neon-2))" }}
+                  style={{ background: "linear-gradient(135deg, var(--acc-1), var(--acc-2))" }}
                 >
                   <Bot size={19} />
                   <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#0a0f1e] bg-emerald-400" />
@@ -178,7 +178,7 @@ export function ChatWidget() {
                       )}
                       style={
                         m.role === "user"
-                          ? { background: "linear-gradient(135deg, var(--neon-1), var(--neon-2))", color: "#071018" }
+                          ? { background: "linear-gradient(135deg, var(--acc-1), var(--acc-2))", color: "#071018" }
                           : undefined
                       }
                     >
@@ -195,7 +195,7 @@ export function ChatWidget() {
                           key={d}
                           animate={{ y: [0, -4, 0] }}
                           transition={{ duration: 0.7, repeat: Infinity, delay: d * 0.15 }}
-                          className="h-1.5 w-1.5 rounded-full bg-neon-1"
+                          className="h-1.5 w-1.5 rounded-full bg-acc-1"
                         />
                       ))}
                       <span className="ml-1 text-[10px] text-muted-foreground">{t("chat.typing")}</span>
@@ -211,7 +211,7 @@ export function ChatWidget() {
                     <button
                       key={qa.id}
                       onClick={() => void send(qa.message)}
-                      className="glass shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground transition-all hover:border-neon-1/50 hover:text-foreground"
+                      className="glass shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold text-muted-foreground transition-all hover:border-acc-1/50 hover:text-foreground"
                     >
                       <Tx text={qa.label} />
                     </button>
@@ -240,7 +240,7 @@ export function ChatWidget() {
                   whileTap={{ scale: 0.94 }}
                   disabled={!input.trim() || typing}
                   aria-label="Send message"
-                  className="btn-neon flex h-10 w-10 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
+                  className="btn-accent flex h-10 w-10 shrink-0 items-center justify-center rounded-full disabled:opacity-40"
                 >
                   <Send size={15} />
                 </motion.button>

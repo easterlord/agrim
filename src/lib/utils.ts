@@ -1,5 +1,5 @@
 /* ============================================================
- * CipherSMM — shared helpers
+ * EzfaNep — shared helpers
  * ============================================================ */
 
 import { clsx, type ClassValue } from "clsx";

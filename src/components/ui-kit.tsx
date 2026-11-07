@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — bespoke glass UI kit
+ * EzfaNep — bespoke glass UI kit
  * ============================================================ */
 
 import { AnimatePresence, animate, motion } from "framer-motion";
@@ -55,11 +55,11 @@ export function SectionTitle({
     >
       {eyebrow ? (
         <div className={cn("mb-2 flex items-center gap-2", center && "justify-center")}>
-          <span className="h-px w-8 bg-gradient-to-r from-transparent via-neon-1 to-neon-2" />
-          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-neon-1">
+          <span className="h-px w-8 bg-gradient-to-r from-transparent via-acc-1 to-acc-2" />
+          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.28em] text-acc-1">
             {eyebrow}
           </span>
-          <span className="h-px w-8 bg-gradient-to-l from-transparent via-neon-2 to-neon-1" />
+          <span className="h-px w-8 bg-gradient-to-l from-transparent via-acc-2 to-acc-1" />
         </div>
       ) : null}
       <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h2>
@@ -68,15 +68,15 @@ export function SectionTitle({
   );
 }
 
-/* ---------------- Neon button ---------------- */
+/* ---------------- Accent button ---------------- */
 
-export function NeonButton({
+export function AccentButton({
   children,
   onClick,
   className,
   disabled,
   type = "button",
-  variant = "neon",
+  variant = "accent",
   size = "md",
 }: {
   children: React.ReactNode;
@@ -84,7 +84,7 @@ export function NeonButton({
   className?: string;
   disabled?: boolean;
   type?: "button" | "submit";
-  variant?: "neon" | "ghost" | "danger";
+  variant?: "accent" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
 }) {
   const sizes = {
@@ -93,9 +93,9 @@ export function NeonButton({
     lg: "px-7 py-3 text-base",
   };
   const variants = {
-    neon: "btn-neon font-semibold",
+    accent: "btn-accent font-semibold",
     ghost:
-      "glass font-semibold hover:border-neon-1/50 transition-all duration-300 text-foreground",
+      "glass font-semibold hover:border-acc-1/50 transition-all duration-300 text-foreground",
     danger:
       "bg-red-500/15 text-red-500 border border-red-500/40 font-semibold hover:bg-red-500/25 transition-colors",
   };
@@ -161,8 +161,8 @@ export function Segmented<T extends string>({
                 className="absolute inset-0 -z-10 rounded-full"
                 style={{
                   background:
-                    "linear-gradient(93deg, color-mix(in oklab, var(--neon-1) 24%, transparent), color-mix(in oklab, var(--neon-2) 24%, transparent))",
-                  boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--neon-1) 45%, transparent)",
+                    "linear-gradient(93deg, color-mix(in oklab, var(--acc-1) 24%, transparent), color-mix(in oklab, var(--acc-2) 24%, transparent))",
+                  boxShadow: "inset 0 0 0 1px color-mix(in oklab, var(--acc-1) 45%, transparent)",
                 }}
                 transition={{ type: "spring", stiffness: 420, damping: 34 }}
               />
@@ -195,7 +195,7 @@ export function Toggle({
       onClick={() => onChange(!checked)}
       className={cn(
         "relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300",
-        checked ? "bg-gradient-to-r from-neon-1 to-neon-2" : "bg-muted-foreground/25",
+        checked ? "bg-gradient-to-r from-acc-1 to-acc-2" : "bg-muted-foreground/25",
       )}
     >
       <motion.span
@@ -537,8 +537,8 @@ export function Spinner({ className }: { className?: string }) {
     <div
       className={cn("h-8 w-8 animate-spin rounded-full border-2 border-transparent", className)}
       style={{
-        borderTopColor: "var(--neon-1)",
-        borderRightColor: "var(--neon-2)",
+        borderTopColor: "var(--acc-1)",
+        borderRightColor: "var(--acc-2)",
       }}
       role="status"
       aria-label="Loading"
@@ -559,7 +559,7 @@ export function EmptyState({
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-14 text-center">
-      <div className="glass flex h-16 w-16 items-center justify-center rounded-2xl text-neon-1">{icon}</div>
+      <div className="glass flex h-16 w-16 items-center justify-center rounded-2xl text-acc-1">{icon}</div>
       <p className="text-base font-semibold">{title}</p>
       {sub ? <p className="max-w-sm text-sm text-muted-foreground">{sub}</p> : null}
       {action}

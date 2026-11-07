@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * CipherSMM — inline SVG brand & platform icons.
+ * EzfaNep — inline SVG brand & platform icons.
  * Every icon is embedded (no external images) so they can never
  * fail to load. Stroke icons inherit `currentColor`.
  * ============================================================ */
@@ -223,27 +223,28 @@ export function Logo({ size = 34, className }: { size?: number; className?: stri
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" className={className} aria-hidden="true">
       <defs>
-        <linearGradient id="csmm-logo-grad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor="#22d3ee" />
-          <stop offset="0.55" stopColor="#a78bfa" />
-          <stop offset="1" stopColor="#f472b6" />
+        <linearGradient id="ezfa-logo-grad" x1="0" y1="0" x2="48" y2="48" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#2dd4bf" />
+          <stop offset="0.55" stopColor="#34d399" />
+          <stop offset="1" stopColor="#fbbf24" />
         </linearGradient>
       </defs>
       <path
         d="M24 3.5 41.5 13.75v20.5L24 44.5 6.5 34.25v-20.5z"
         fill="none"
-        stroke="url(#csmm-logo-grad)"
+        stroke="url(#ezfa-logo-grad)"
         strokeWidth="2.6"
         strokeLinejoin="round"
+        opacity="0.55"
       />
       <path
-        d="M30.5 19.2a8 8 0 1 0 .2 9.5"
+        d="M19 16.5h11M19 24h8.5M19 31.5h11M19 16.5v15"
         fill="none"
-        stroke="url(#csmm-logo-grad)"
+        stroke="url(#ezfa-logo-grad)"
         strokeWidth="3.2"
         strokeLinecap="round"
       />
-      <circle cx="33.4" cy="15.6" r="2.4" fill="url(#csmm-logo-grad)">
+      <circle cx="33.6" cy="24" r="2.1" fill="#fbbf24">
         <animate attributeName="opacity" values="1;0.35;1" dur="2.6s" repeatCount="indefinite" />
       </circle>
     </svg>
