@@ -1,0 +1,433 @@
+"use client";
+
+/* ============================================================
+ * CipherSMM — i18n engine.
+ *  • Native localized strings for UI chrome (en / ne / hi).
+ *  • Dynamic content (service names, admin-entered text) is
+ *    auto-translated on demand through Google Translate's free
+ *    gtx endpoint, with localStorage caching and silent failure.
+ * ============================================================ */
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import type { Lang } from "./types";
+
+/* ---------------- dictionary (synced triplets) ---------------- */
+
+type Tri = { en: string; ne: string; hi: string };
+
+export const dict = {
+  nav: {
+    home: { en: "Home", ne: "गृह", hi: "होम" },
+    services: { en: "Services", ne: "सेवाहरू", hi: "सेवाएँ" },
+    orders: { en: "My Orders", ne: "मेरा अर्डरहरू", hi: "मेरे ऑर्डर" },
+    account: { en: "Account", ne: "खाता", hi: "खाता" },
+    login: { en: "Sign In", ne: "साइन इन", hi: "साइन इन" },
+    logout: { en: "Sign Out", ne: "साइन आउट", hi: "साइन आउट" },
+    admin: { en: "Admin", ne: "एडमिन", hi: "एडमिन" },
+    checkout: { en: "Checkout", ne: "चेकआउट", hi: "चेकआउट" },
+  },
+  hero: {
+    badge: {
+      en: "Nepal's #1 SMM & Game Top-Up Store",
+      ne: "नेपालको #१ SMM तथा गेम टप-अप स्टोर",
+      hi: "नेपाल का #1 SMM और गेम टॉप-अप स्टोर",
+    },
+    title1: { en: "Grow Your Social,", ne: "सोशल बढाउनुहोस्,", hi: "अपना सोशल बढ़ाएँ," },
+    title2: { en: "Top-Up Your Game", ne: "गेम टप-अप गर्नुहोस्", hi: "गेम टॉप-अप करें" },
+    sub: {
+      en: "Instant followers, likes, views & in-game currency at Nepal's lowest prices. Pay with eSewa, Khalti, bank transfer or crypto.",
+      ne: "नेपालकै सस्तो मूल्यमा तत्काल फलोअर्स, लाइक, भ्यूज र इन-गेम करेन्सी। eSewa, Khalti, बैंक वा क्रिप्टोबाट भुक्तानी गर्नुहोस्।",
+      hi: "नेपाल की सबसे किफायती दरों पर तुरंत फॉलोअर्स, लाइक, व्यूज़ और इन-गेम करेंसी। eSewa, Khalti, बैंक या क्रिप्टो से भुगतान करें।",
+    },
+    cta1: { en: "Start Ordering", ne: "अर्डर सुरु गर्नुहोस्", hi: "ऑर्डर शुरू करें" },
+    cta2: { en: "View Pricing", ne: "मूल्य हेर्नुहोस्", hi: "कीमत देखें" },
+    stat1: { en: "Live Services", ne: "लाइभ सेवाहरू", hi: "लाइव सेवाएँ" },
+    stat2: { en: "Orders Done", ne: "अर्डर पूरा", hi: "ऑर्डर पूर्ण" },
+    stat3: { en: "Happy Clients", ne: "सन्तुष्ट ग्राहक", hi: "संतुष्ट ग्राहक" },
+    stat4: { en: "Avg. Delivery", ne: "औसत डेलिभरी", hi: "औसत डिलीवरी" },
+  },
+  shop: {
+    title: { en: "Build Your Order", ne: "अर्डर बनाउनुहोस्", hi: "अपना ऑर्डर बनाएँ" },
+    sub: {
+      en: "Pick a platform, choose a service, set the quantity — the price updates live.",
+      ne: "प्लेटफर्म छान्नुहोस्, सेवा रोज्नुहोस्, परिमाण सेट गर्नुहोस् — मूल्य तत्काल अपडेट हुन्छ।",
+      hi: "प्लेटफ़ॉर्म चुनें, सेवा चुनें, मात्रा सेट करें — कीमत लाइव अपडेट होती है।",
+    },
+    platform: { en: "Platform", ne: "प्लेटफर्म", hi: "प्लेटफ़ॉर्म" },
+    service: { en: "Service Type", ne: "सेवाको प्रकार", hi: "सेवा प्रकार" },
+    quantity: { en: "Quantity", ne: "परिमाण", hi: "मात्रा" },
+    package: { en: "Select Package", ne: "प्याकेज छान्नुहोस्", hi: "पैकेज चुनें" },
+    uidLabel: { en: "Player ID / UID", ne: "खेलाडी ID / UID", hi: "प्लेयर ID / UID" },
+    uidHint: { en: "Your game UID or player ID", ne: "तपाईंको गेम UID वा Player ID", hi: "आपका गेम UID या प्लेयर ID" },
+    linkHint: { en: "Your public profile or post URL", ne: "तपाईंको सार्वजनिक प्रोफाइल वा पोस्ट URL", hi: "आपका सार्वजनिक प्रोफ़ाइल या पोस्ट URL" },
+    price: { en: "Total Price", ne: "कुल मूल्य", hi: "कुल कीमत" },
+    buyNow: { en: "Buy Now", ne: "अहिले किन्नुहोस्", hi: "अभी खरीदें" },
+    perK: { en: "per 1,000", ne: "प्रति १,०००", hi: "प्रति 1,000" },
+    speed: { en: "Delivery", ne: "डेलिभरी", hi: "डिलीवरी" },
+    warranty: { en: "Warranty", ne: "वारेन्टी", hi: "वारंटी" },
+    min: { en: "Min", ne: "न्यूनतम", hi: "न्यूनतम" },
+    max: { en: "Max", ne: "अधिकतम", hi: "अधिकतम" },
+    social: { en: "Social Media", ne: "सोशल मिडिया", hi: "सोशल मीडिया" },
+    games: { en: "Game Top-Up", ne: "गेम टप-अप", hi: "गेम टॉप-अप" },
+    selectPrompt: { en: "Select a platform to begin", ne: "सुरु गर्न प्लेटफर्म छान्नुहोस्", hi: "शुरू करने के लिए प्लेटफ़ॉर्म चुनें" },
+  },
+  checkout: {
+    title: { en: "Checkout", ne: "चेकआउट", hi: "चेकआउट" },
+    summary: { en: "Order Summary", ne: "अर्डर सारांश", hi: "ऑर्डर सारांश" },
+    contact: { en: "Contact (Telegram / Phone)", ne: "सम्पर्क (टेलिग्राम / फोन)", hi: "संपर्क (टेलीग्राम / फ़ोन)" },
+    contactPh: { en: "@username or 98XXXXXXXX", ne: "@username वा 98XXXXXXXX", hi: "@username या 98XXXXXXXX" },
+    payMethod: { en: "Payment Method", ne: "भुक्तानी विधि", hi: "भुगतान विधि" },
+    txId: { en: "Transaction ID", ne: "लेनदेन ID", hi: "ट्रांजेक्शन ID" },
+    txPh: { en: "Paste TxID / reference number", ne: "TxID / रेफरेन्स नम्बर टाँस्नुहोस्", hi: "TxID / रेफ़रेंस नंबर पेस्ट करें" },
+    receipt: { en: "Receipt / voucher URL", ne: "रसिद / भौचर URL", hi: "रसीद / वाउचर URL" },
+    upload: { en: "Upload screenshot", ne: "स्क्रिनसट अपलोड", hi: "स्क्रीनशॉट अपलोड" },
+    submit: { en: "Submit Order", ne: "अर्डर पेश गर्नुहोस्", hi: "ऑर्डर सबमिट करें" },
+    submitting: { en: "Submitting…", ne: "पेश हुँदै…", hi: "सबमिट हो रहा है…" },
+    total: { en: "Total", ne: "जम्मा", hi: "कुल" },
+    payFirst: {
+      en: "Complete the payment first, then submit the transaction details below.",
+      ne: "पहिले भुक्तानी सम्पन्न गर्नुहोस्, त्यसपछि तल लेनदेन विवरण पेश गर्नुहोस्।",
+      hi: "पहले भुगतान पूरा करें, फिर नीचे ट्रांजेक्शन विवरण सबमिट करें।",
+    },
+    needTx: {
+      en: "Please enter the transaction ID or upload a receipt screenshot.",
+      ne: "कृपया लेनदेन ID हाल्नुहोस् वा रसिद स्क्रिनसट अपलोड गर्नुहोस्।",
+      hi: "कृपया ट्रांजेक्शन ID दर्ज करें या रसीद स्क्रीनशॉट अपलोड करें।",
+    },
+    success: { en: "Order Placed!", ne: "अर्डर सफल!", hi: "ऑर्डर सफल!" },
+    successMsg: {
+      en: "Your order is pending payment verification. We usually verify within 10–30 minutes.",
+      ne: "तपाईंको अर्डर भुक्तानी प्रमाणीकरणको प्रतीक्षामा छ। सामान्यतया १०–३० मिनेटभित्र प्रमाणित हुन्छ।",
+      hi: "आपका ऑर्डर भुगतान सत्यापन की प्रतीक्षा में है। सामान्यतः 10–30 मिनट में सत्यापित हो जाता है।",
+    },
+    viewOrders: { en: "Track My Order", ne: "अर्डर ट्र्याक गर्नुहोस्", hi: "ऑर्डर ट्रैक करें" },
+    orderIdCopy: { en: "Order ID copied", ne: "अर्डर ID कपी भयो", hi: "ऑर्डर ID कॉपी हो गया" },
+    empty: { en: "Your cart is empty — configure a service first.", ne: "कार्ट खाली छ — पहिले सेवा छान्नुहोस्।", hi: "आपकी कार्ट खाली है — पहले सेवा चुनें।" },
+    copy: { en: "Copy", ne: "कपी", hi: "कॉपी" },
+    copied: { en: "Copied!", ne: "कपी भयो!", hi: "कॉपी हो गया!" },
+    scan: { en: "Scan & pay", ne: "स्क्यान गरी तिर्नुहोस्", hi: "स्कैन करके भुगतान करें" },
+    accountName: { en: "Account Name", ne: "खाताको नाम", hi: "खाता नाम" },
+    accountNumber: { en: "Account / Number", ne: "खाता / नम्बर", hi: "खाता / नंबर" },
+    wallet: { en: "Wallet", ne: "वालेट", hi: "वॉलेट" },
+    address: { en: "Address", ne: "ठेगाना", hi: "एड्रेस" },
+    back: { en: "Back to shop", ne: "पसलमा फर्क", hi: "दुकान पर वापस" },
+  },
+  orders: {
+    title: { en: "My Orders", ne: "मेरा अर्डरहरू", hi: "मेरे ऑर्डर" },
+    empty: { en: "No orders yet. Your orders will appear here.", ne: "अझै कुनै अर्डर छैन। तपाईंका अर्डर यहाँ देखिनेछन्।", hi: "अभी कोई ऑर्डर नहीं है। आपके ऑर्डर यहाँ दिखेंगे।" },
+    lookup: { en: "Track any order", ne: "कुनै पनि अर्डर ट्र्याक", hi: "कोई भी ऑर्डर ट्रैक करें" },
+    lookupBtn: { en: "Track", ne: "ट्र्याक", hi: "ट्रैक" },
+    notFound: { en: "Order not found", ne: "अर्डर भेटिएन", hi: "ऑर्डर नहीं मिला" },
+    pending: { en: "Pending", ne: "पेन्डिङ", hi: "लंबित" },
+    processing: { en: "Processing", ne: "प्रक्रियामा", hi: "प्रोसेसिंग" },
+    completed: { en: "Completed", ne: "पूरा भयो", hi: "पूर्ण" },
+    rejected: { en: "Rejected", ne: "अस्वीकृत", hi: "अस्वीकृत" },
+    cancelled: { en: "Cancelled", ne: "रद्द", hi: "रद्द" },
+    date: { en: "Date", ne: "मिति", hi: "तारीख" },
+    payment: { en: "Payment", ne: "भुक्तानी", hi: "भुगतान" },
+    adminNote: { en: "Admin note", ne: "एडमिन नोट", hi: "एडमिन नोट" },
+    items: { en: "Items", ne: "वस्तुहरू", hi: "आइटम" },
+  },
+  account: {
+    title: { en: "My Account", ne: "मेरो खाता", hi: "मेरा खाता" },
+    guest: { en: "Guest session", ne: "गेस्ट सेसन", hi: "गेस्ट सेशन" },
+    signedIn: { en: "Signed in as", ne: "साइन इन", hi: "साइन इन" },
+    provider: { en: "Provider", ne: "प्रदायक", hi: "प्रदाता" },
+    memberSince: { en: "Member since", ne: "सदस्य मिति", hi: "सदस्य बने से" },
+    theme: { en: "Theme", ne: "थिम", hi: "थीम" },
+    language: { en: "Language", ne: "भाषा", hi: "भाषा" },
+    currency: { en: "Currency", ne: "मुद्रा", hi: "मुद्रा" },
+    support: { en: "Support", ne: "समर्थन", hi: "सहायता" },
+    clearCache: { en: "Clear offline cache", ne: "अफलाइन क्यास खाली", hi: "ऑफ़लाइन कैश साफ़ करें" },
+    admin: { en: "Admin Panel", ne: "एडमिन प्यानल", hi: "एडमिन पैनल" },
+  },
+  auth: {
+    welcome: { en: "Welcome to CipherSMM", ne: "CipherSMM मा स्वागत छ", hi: "CipherSMM में स्वागत है" },
+    sub: { en: "Sign in to track orders & unlock faster support.", ne: "अर्डर ट्र्याक गर्न र छिटो सहयोग पाउन साइन इन गर्नुहोस्।", hi: "ऑर्डर ट्रैक करने और तेज़ सहायता के लिए साइन इन करें।" },
+    signIn: { en: "Sign In", ne: "साइन इन", hi: "साइन इन" },
+    signUp: { en: "Create Account", ne: "खाता बनाउनुहोस्", hi: "खाता बनाएँ" },
+    name: { en: "Full name", ne: "पूरा नाम", hi: "पूरा नाम" },
+    email: { en: "Email", ne: "इमेल", hi: "ईमेल" },
+    password: { en: "Password", ne: "पासवर्ड", hi: "पासवर्ड" },
+    or: { en: "or continue with", ne: "वा यसरी जारी राख्नुहोस्", hi: "या जारी रखें" },
+    guest: { en: "Continue as Guest", ne: "गेस्ट रूपमा जारी", hi: "गेस्ट के रूप में जारी रखें" },
+    noAccount: { en: "No account?", ne: "खाता छैन?", hi: "खाता नहीं है?" },
+    haveAccount: { en: "Have an account?", ne: "खाता छ?", hi: "खाता है?" },
+    oauthHint: {
+      en: "Google / Apple sign-in activates once Firebase keys are set (Admin ▸ Settings).",
+      ne: "Firebase किहरू थपिएपछि Google / Apple साइन इन सक्रिय हुन्छ (एडमिन ▸ सेटिङ)।",
+      hi: "Firebase की सेट होने पर Google / Apple साइन इन सक्रिय हो जाता है (एडमिन ▸ सेटिंग्स)।",
+    },
+    errEmail: { en: "Enter a valid email", ne: "मान्य इमेल हाल्नुहोस्", hi: "मान्य ईमेल दर्ज करें" },
+    errPass: { en: "Password must be 6+ characters", ne: "पासवर्ड ६+ अक्षरको हुनुपर्छ", hi: "पासवर्ड 6+ अक्षरों का होना चाहिए" },
+    errUser: { en: "No account found with this email", ne: "यो इमेलसँग कुनै खाता भेटिएन", hi: "इस ईमेल से कोई खाता नहीं मिला" },
+    errWrong: { en: "Incorrect password", ne: "गलत पासवर्ड", hi: "गलत पासवर्ड" },
+    errExists: { en: "Email already registered", ne: "इमेल पहिले नै दर्ता छ", hi: "ईमेल पहले से पंजीकृत है" },
+    errGoogle: { en: "Google sign-in failed. Try again or use email.", ne: "Google साइन इन असफल भयो। फेरि प्रयास गर्नुहोस्।", hi: "Google साइन इन विफल। दोबारा कोशिश करें।" },
+    errApple: { en: "Apple sign-in failed. Try again or use email.", ne: "Apple साइन इन असफल भयो। फेरि प्रयास गर्नुहोस्।", hi: "Apple साइन इन विफल। दोबारा कोशिश करें।" },
+    errDefault: { en: "Sign-in failed. Please try again.", ne: "साइन इन असफल भयो। फेरि प्रयास गर्नुहोस्।", hi: "साइन इन विफल। दोबारा कोशिश करें।" },
+  },
+  chat: {
+    title: { en: "Support Assistant", ne: "सहयोग सहायक", hi: "सहायक" },
+    placeholder: { en: "Ask about pricing, orders…", ne: "मूल्य, अर्डरबारे सोध्नुहोस्…", hi: "कीमत, ऑर्डर के बारे में पूछें…" },
+    typing: { en: "typing…", ne: "टाइप गर्दै…", hi: "टाइप कर रहा है…" },
+  },
+  admin: {
+    gate: { en: "Admin Access", ne: "एडमिन पहुँच", hi: "एडमिन एक्सेस" },
+    gateSub: { en: "Enter the admin passcode to open the control center.", ne: "नियन्त्रण केन्द्र खोल्न एडमिन पासकोड हाल्नुहोस्।", hi: "कंट्रोल सेंटर खोलने के लिए एडमिन पासकोड दर्ज करें।" },
+    passcode: { en: "Passcode", ne: "पासकोड", hi: "पासकोड" },
+    enter: { en: "Unlock", ne: "अनलक", hi: "अनलॉक" },
+    wrong: { en: "Wrong passcode", ne: "गलत पासकोड", hi: "गलत पासकोड" },
+    title: { en: "Control Center", ne: "नियन्त्रण केन्द्र", hi: "कंट्रोल सेंटर" },
+    revenue: { en: "Revenue (USD)", ne: "आम्दानी (USD)", hi: "राजस्व (USD)" },
+    totalOrders: { en: "Total Orders", ne: "कुल अर्डर", hi: "कुल ऑर्डर" },
+    rate: { en: "Exchange rate (NPR per $1)", ne: "विनिमय दर ($१ = कति रु)", hi: "एक्सचेंज दर ($1 = कितन रु)" },
+    siteName: { en: "Site name", ne: "साइट नाम", hi: "साइट नाम" },
+    tagline: { en: "Tagline", ne: "ट्यागलाइन", hi: "टैगलाइन" },
+    passcodeNew: { en: "New passcode (blank = keep current)", ne: "नयाँ पासकोड (खाली = पुरानै)", hi: "नया पासकोड (खाली = वही)" },
+    saved: { en: "Saved successfully", ne: "सुरक्षित भयो", hi: "सेव हो गया" },
+    addService: { en: "Add service", ne: "सेवा थप्नुहोस्", hi: "सेवा जोड़ें" },
+    addPackage: { en: "Add package", ne: "प्याकेज थप्नुहोस्", hi: "पैकेज जोड़ें" },
+    addFaq: { en: "Add FAQ", ne: "FAQ थप्नुहोस्", hi: "FAQ जोड़ें" },
+    addWallet: { en: "Add wallet", ne: "वालेट थप्नुहोस्", hi: "वॉलेट जोड़ें" },
+    confirmDelete: { en: "Delete this item?", ne: "यो मेट्ने हो?", hi: "यह हटाएँ?" },
+    welcomeMsg: { en: "Welcome message", ne: "स्वागत सन्देश", hi: "स्वागत संदेश" },
+    sysPrompt: { en: "System instructions", ne: "प्रणाली निर्देशन", hi: "सिस्टम निर्देश" },
+    uploadQr: { en: "Upload QR image", ne: "QR तस्बिर अपलोड", hi: "QR इमेज अपलोड" },
+    qrUrl: { en: "QR image URL", ne: "QR तस्बिर URL", hi: "QR इमेज URL" },
+    enabled: { en: "Enabled", ne: "सक्रिय", hi: "सक्रिय" },
+    disabled: { en: "Disabled", ne: "निष्क्रिय", hi: "निष्क्रिय" },
+    verify: { en: "Verify payment", ne: "भुक्तानी रुजु", hi: "भुगतान सत्यापित" },
+    reject: { en: "Reject", ne: "अस्वीकार", hi: "अस्वीकार" },
+    complete: { en: "Mark completed", ne: "पूरा भयो", hi: "पूर्ण चिह्नित" },
+    processing: { en: "Mark processing", ne: "प्रक्रियामा", hi: "प्रोसेसिंग" },
+    firebase: { en: "Firebase config (JSON)", ne: "Firebase कन्फिग (JSON)", hi: "Firebase कॉन्फ़िग (JSON)" },
+    firebaseHint: {
+      en: "Paste your Firebase web config to enable Google / Apple sign-in & cloud accounts.",
+      ne: "Google / Apple साइन इन र क्लाउड खाताका लागि Firebase web config टाँस्नुहोस्।",
+      hi: "Google / Apple साइन इन और क्लाउड खातों के लिए Firebase वेब कॉन्फ़िग पेस्ट करें।",
+    },
+    exportData: { en: "Export data (JSON)", ne: "डाटा निर्यात (JSON)", hi: "डेटा एक्सपोर्ट (JSON)" },
+    resetCache: { en: "Clear local cache", ne: "लोकल क्यास खाली", hi: "लोकल कैश साफ़" },
+    approve: { en: "Approve", ne: "स्वीकृत", hi: "स्वीकृत" },
+    apiKey: { en: "API key (optional — external AI)", ne: "API की (वैकल्पिक — बाह्य AI)", hi: "API की (वैकल्पिक — एक्सटर्नल AI)" },
+    endpoint: { en: "AI endpoint (OpenAI-compatible URL)", ne: "AI एन्डपोइन्ट (OpenAI-मिल्ने URL)", hi: "AI एंडपॉइंट (OpenAI-संगत URL)" },
+    quickActions: { en: "Quick action buttons", ne: "द्रुत कार्य बटनहरू", hi: "क्विक एक्शन बटन" },
+    active: { en: "Active", ne: "सक्रिय", hi: "सक्रिय" },
+    priceUsd: { en: "Price USD", ne: "मूल्य USD", hi: "कीमत USD" },
+    pricePerK: { en: "Price per 1000 (USD)", ne: "प्रति १००० मूल्य (USD)", hi: "प्रति 1000 कीमत (USD)" },
+  },
+  footer: {
+    about: {
+      en: "Nepal's fastest SMM & game top-up store — instant delivery, 24/7 support.",
+      ne: "नेपालको सबैभन्दा छिटो SMM तथा गेम टप-अप स्टोर — तत्काल डेलिभरी, २४/७ सहयोग।",
+      hi: "नेपाल का सबसे तेज़ SMM और गेम टॉप-अप स्टोर — तुरंत डिलीवरी, 24/7 सहायता।",
+    },
+    links: { en: "Quick Links", ne: "द्रुत लिंक", hi: "क्विक लिंक" },
+    support: { en: "Support", ne: "समर्थन", hi: "सहायता" },
+    payments: { en: "We Accept", ne: "हामी स्वीकार गर्छौं", hi: "हम स्वीकार करते हैं" },
+    rights: { en: "All rights reserved.", ne: "सर्वाधिकार सुरक्षित।", hi: "सर्वाधिकार सुरक्षित।" },
+  },
+  sync: {
+    online: { en: "Cloud synced", ne: "क्लाउड सिंक", hi: "क्लाउड सिंक" },
+    local: { en: "Offline mode", ne: "अफलाइन मोड", hi: "ऑफ़लाइन मोड" },
+    connecting: { en: "Connecting…", ne: "जोड्दै…", hi: "कनेक्ट हो रहा है…" },
+    offline: { en: "Reconnecting…", ne: "पुनः जोड्दै…", hi: "पुनः कनेक्ट…" },
+  },
+  theme: {
+    dark: { en: "Dark", ne: "डार्क", hi: "डार्क" },
+    light: { en: "Light", ne: "लाइट", hi: "लाइट" },
+  },
+  common: {
+    save: { en: "Save", ne: "सुरक्षित", hi: "सेव" },
+    cancel: { en: "Cancel", ne: "रद्द", hi: "रद्द" },
+    delete: { en: "Delete", ne: "मेट्नुहोस्", hi: "हटाएँ" },
+    edit: { en: "Edit", ne: "सम्पादन", hi: "संपादित" },
+    add: { en: "Add", ne: "थप्नुहोस्", hi: "जोड़ें" },
+    close: { en: "Close", ne: "बन्द", hi: "बंद करें" },
+    loading: { en: "Loading…", ne: "लोड हुँदै…", hi: "लोड हो रहा है…" },
+    optional: { en: "optional", ne: "वैकल्पिक", hi: "वैकल्पिक" },
+    search: { en: "Search", ne: "खोज्नुहोस्", hi: "खोजें" },
+    new: { en: "New", ne: "नयाँ", hi: "नया" },
+    live: { en: "LIVE", ne: "लाइभ", hi: "लाइव" },
+  },
+} as const;
+
+type Dict = typeof dict;
+
+/* ---------------- lookup ---------------- */
+
+export function lookup(lang: Lang, path: string): string {
+  const segs = path.split(".");
+  let node: unknown = dict as unknown;
+  for (const seg of segs) {
+    if (!node || typeof node !== "object") return path;
+    node = (node as Record<string, unknown>)[seg];
+  }
+  if (node && typeof node === "object" && lang in (node as Record<string, string>)) {
+    return (node as Record<string, string>)[lang] ?? (node as Tri).en;
+  }
+  // fallback to english
+  if (node && typeof node === "object" && "en" in (node as Record<string, string>)) {
+    return (node as Tri).en;
+  }
+  return path;
+}
+
+/* ---------------- Google auto-translate (dynamic content) ---------------- */
+
+const LS_TX = "csmm:txcache";
+const txMem = new Map<string, string>();
+
+function txCacheGet(key: string): string | null {
+  if (txMem.has(key)) return txMem.get(key) ?? null;
+  try {
+    const raw = localStorage.getItem(LS_TX);
+    if (raw) {
+      const map = JSON.parse(raw) as Record<string, string>;
+      if (map[key]) {
+        txMem.set(key, map[key]);
+        return map[key];
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function txCacheSet(key: string, value: string) {
+  txMem.set(key, value);
+  try {
+    const raw = localStorage.getItem(LS_TX);
+    const map = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+    map[key] = value;
+    const keys = Object.keys(map);
+    if (keys.length > 400) keys.slice(0, 100).forEach((k) => delete map[k]);
+    localStorage.setItem(LS_TX, JSON.stringify(map));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Translate arbitrary text via Google Translate (free gtx endpoint). Silent-fail. */
+export async function googleTranslate(text: string, target: Lang): Promise<string> {
+  if (target === "en" || !text.trim()) return text;
+  const key = `${target}:${text}`;
+  const cached = txCacheGet(key);
+  if (cached) return cached;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${target}&dt=t&q=${encodeURIComponent(text)}`;
+    const res = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    if (!res.ok) return text;
+    const data = (await res.json()) as unknown;
+    if (!Array.isArray(data) || !Array.isArray(data[0])) return text;
+    const out = (data[0] as unknown[])
+      .map((seg) => (Array.isArray(seg) ? String(seg[0] ?? "") : ""))
+      .join("")
+      .trim();
+    if (!out) return text;
+    txCacheSet(key, out);
+    return out;
+  } catch {
+    return text;
+  }
+}
+
+/* ---------------- context ---------------- */
+
+const LS_LANG = "csmm:lang";
+
+interface I18nContextValue {
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  /** translate a dictionary key */
+  t: (path: string) => string;
+  /** translate dynamic content (service names, etc.) with Google fallback */
+  auto: (text: string) => Promise<string>;
+}
+
+const I18nContext = createContext<I18nContextValue | null>(null);
+
+export function I18nProvider({ children }: { children: ReactNode }) {
+  const [lang, setLangState] = useState<Lang>(() => {
+    if (typeof window === "undefined") return "en";
+    try {
+      const stored = localStorage.getItem(LS_LANG) as Lang | null;
+      if (stored === "en" || stored === "ne" || stored === "hi") return stored;
+    } catch {
+      /* ignore */
+    }
+    return "en";
+  });
+
+  const setLang = useCallback((l: Lang) => {
+    setLangState(l);
+    try {
+      localStorage.setItem(LS_LANG, l);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      document.documentElement.lang = lang;
+      document.documentElement.classList.toggle("lang-deva", lang !== "en");
+    } catch {
+      /* ignore */
+    }
+  }, [lang]);
+
+  const t = useCallback((path: string) => lookup(lang, path), [lang]);
+  const auto = useCallback((text: string) => googleTranslate(text, lang), [lang]);
+
+  const value = useMemo(() => ({ lang, setLang, t, auto }), [lang, setLang, t, auto]);
+  return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
+}
+
+export function useI18n(): I18nContextValue {
+  const ctx = useContext(I18nContext);
+  if (!ctx) throw new Error("useI18n must be used inside <I18nProvider>");
+  return ctx;
+}
+
+/** Renders dynamic (admin-defined) text with live Google auto-translation. */
+export function Tx({ text, className }: { text: string; className?: string }) {
+  const { lang, auto } = useI18n();
+  const [out, setOut] = useState(text);
+
+  useEffect(() => {
+    let alive = true;
+    // defer initial reset to a microtask (avoids sync setState in effect)
+    Promise.resolve().then(() => {
+      if (alive) setOut(text);
+    });
+    if (lang === "en" || !text) return;
+    void auto(text).then((translated) => {
+      if (alive && translated) setOut(translated);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [text, lang, auto]);
+
+  return <span className={className}>{out}</span>;
+}
+
+export const LANGUAGES: Array<{ id: Lang; label: string; flag: string }> = [
+  { id: "en", label: "English", flag: "🇬🇧" },
+  { id: "ne", label: "नेपाली", flag: "🇳🇵" },
+  { id: "hi", label: "हिन्दी", flag: "🇮🇳" },
+];
