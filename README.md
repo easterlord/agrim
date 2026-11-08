@@ -127,3 +127,4 @@ src/
 ## 🧰 Tech stack
 
 Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Framer Motion · Zustand · Firebase (RTDB + Auth) · Lucide · qrcode — package manager: **bun** (or pnpm).
+# agrim
