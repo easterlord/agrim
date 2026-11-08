@@ -1,0 +1,672 @@
+     1→"use client";
+     2→
+     3→/* ============================================================
+     4→ * EzFame — home view: hero, category pills, configurator,
+     5→ * live pricing, stats, features, how-it-works.
+     6→ * ============================================================ */
+     7→
+     8→import { AnimatePresence, motion } from "framer-motion";
+     9→import {
+    10→  AlertTriangle,
+    11→  BadgePercent,
+    12→  Bot,
+    13→  ChevronRight,
+    14→  Gamepad2,
+    15→  Gauge,
+    16→  Link2,
+    17→  Package as PackageIcon,
+    18→  Rocket,
+    19→  ShieldCheck,
+    20→  ShoppingBag,
+    21→  Sparkles,
+    22→  Zap,
+    23→} from "lucide-react";
+    24→import { useMemo, useState } from "react";
+    25→import { PlatformIcon } from "@/components/icons";
+    26→import { CountUp, GlassCard, AccentButton, SectionTitle, Segmented, TextInput } from "@/components/ui-kit";
+    27→import { Tx, useI18n } from "@/lib/i18n";
+    28→import { useCatalog, useSettings } from "@/lib/data";
+    29→import { useDraft, useUI } from "@/lib/store";
+    30→import { navigate } from "@/lib/router";
+    31→import { calcQtyPrice, cn, convertUSD, findPackage, fmtNPR, fmtUSD } from "@/lib/utils";
+    32→import type { Platform, ServiceType } from "@/lib/types";
+    33→
+    34→/* ============================ HERO ============================ */
+    35→
+    36→const FLOAT_CHIPS = [
+    37→  { icon: "👥", text: "+1,000 Followers", className: "left-[4%] top-[24%] hidden lg:flex", delay: 0 },
+    38→  { icon: "⚡", text: "UC delivered in 5 min", className: "right-[6%] top-[30%] hidden lg:flex", delay: 0.8 },
+    39→  { icon: "❤️", text: "+5,000 Likes", className: "left-[10%] bottom-[18%] hidden lg:flex", delay: 1.6 },
+    40→  { icon: "💎", text: "Free Fire x2 Bonus", className: "right-[10%] bottom-[22%] hidden lg:flex", delay: 2.2 },
+    41→];
+    42→
+    43→export function Hero() {
+    44→  const { t } = useI18n();
+    45→  const { platforms } = useCatalog();
+    46→
+    47→  const scrollToShop = () => {
+    48→    document.getElementById("shop")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    49→  };
+    50→
+    51→  return (
+    52→    <section className="relative overflow-hidden pt-28 sm:pt-32">
+    53→      {FLOAT_CHIPS.map((chip) => (
+    54→        <motion.div
+    55→          key={chip.text}
+    56→          initial={{ opacity: 0 }}
+    57→          animate={{ opacity: 1, y: [0, -12, 0] }}
+    58→          transition={{ opacity: { delay: 0.6 + chip.delay * 0.3, duration: 0.6 }, y: { duration: 5 + chip.delay, repeat: Infinity, ease: "easeInOut" } }}
+    59→          className={cn("glass absolute z-10 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-muted-foreground", chip.className)}
+    60→        >
+    61→          <span>{chip.icon}</span>
+    62→          {chip.text}
+    63→        </motion.div>
+    64→      ))}
+    65→
+    66→      <div className="mx-auto max-w-5xl px-4 text-center sm:px-6">
+    67→        <motion.div
+    68→          initial={{ opacity: 0, y: 16 }}
+    69→          animate={{ opacity: 1, y: 0 }}
+    70→          transition={{ duration: 0.5 }}
+    71→          className="glass mx-auto mb-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5"
+    72→        >
+    73→          <span className="dot-live" />
+    74→          <span className="text-xs font-semibold tracking-wide text-muted-foreground">{t("hero.badge")}</span>
+    75→        </motion.div>
+    76→
+    77→        <motion.h1
+    78→          initial={{ opacity: 0, y: 24 }}
+    79→          animate={{ opacity: 1, y: 0 }}
+    80→          transition={{ duration: 0.65, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+    81→          className="text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-6xl"
+    82→        >
+    83→          {t("hero.title1")}
+    84→          <br />
+    85→          <span className="text-gradient soft-emboss">{t("hero.title2")}</span>
+    86→        </motion.h1>
+    87→
+    88→        <motion.p
+    89→          initial={{ opacity: 0, y: 20 }}
+    90→          animate={{ opacity: 1, y: 0 }}
+    91→          transition={{ duration: 0.6, delay: 0.18 }}
+    92→          className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base"
+    93→        >
+    94→          {t("hero.sub")}
+    95→        </motion.p>
+    96→
+    97→        <motion.div
+    98→          initial={{ opacity: 0, y: 20 }}
+    99→          animate={{ opacity: 1, y: 0 }}
+   100→          transition={{ duration: 0.6, delay: 0.28 }}
+   101→          className="mt-8 flex flex-wrap items-center justify-center gap-3"
+   102→        >
+   103→          <AccentButton size="lg" onClick={scrollToShop}>
+   104→            <Rocket size={17} />
+   105→            {t("hero.cta1")}
+   106→          </AccentButton>
+   107→          <AccentButton size="lg" variant="ghost" onClick={scrollToShop}>
+   108→            {t("hero.cta2")}
+   109→            <ChevronRight size={16} />
+   110→          </AccentButton>
+   111→        </motion.div>
+   112→
+   113→        {/* stats — 18,450+ orders · 9,300+ clients · 4.9 rating */}
+   114→        <motion.div
+   115→          initial={{ opacity: 0, y: 24 }}
+   116→          animate={{ opacity: 1, y: 0 }}
+   117→          transition={{ duration: 0.6, delay: 0.4 }}
+   118→          className="mx-auto mt-12 grid max-w-3xl grid-cols-3 gap-3"
+   119→        >
+   120→          {[
+   121→            { value: 18450, suffix: "+", label: t("hero.stat2"), decimals: 0 },
+   122→            { value: 9300, suffix: "+", label: t("hero.stat3"), decimals: 0 },
+   123→            { value: 4.9, suffix: "★", label: t("hero.stat4"), decimals: 1 },
+   124→          ].map((s, i) => (
+   125→            <GlassCard key={s.label} className="px-3 py-4" hover>
+   126→              <div className="font-[family-name:var(--f-display)] text-xl font-extrabold text-gradient sm:text-2xl">
+   127→                <CountUp to={s.value} suffix={s.suffix} decimals={s.decimals} duration={1.4 + i * 0.2} />
+   128→              </div>
+   129→              <div className="mt-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+   130→                {s.label}
+   131→              </div>
+   132→            </GlassCard>
+   133→          ))}
+   134→        </motion.div>
+   135→      </div>
+   136→
+   137→      {/* platform marquee */}
+   138→      <div className="relative mt-14 overflow-hidden py-2 [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]">
+   139→        <div className="animate-marquee flex w-max gap-3">
+   140→          {[...platforms, ...platforms].map((p, i) => (
+   141→            <div key={`${p.id}-${i}`} className="glass flex items-center gap-2 rounded-full px-4 py-2">
+   142→              <PlatformIcon id={p.id} size={16} />
+   143→              <span className="whitespace-nowrap text-xs font-semibold text-muted-foreground">{p.name}</span>
+   144→            </div>
+   145→          ))}
+   146→        </div>
+   147→      </div>
+   148→    </section>
+   149→  );
+   150→}
+   151→
+   152→/* ======================= CATEGORY PILLS ======================= */
+   153→
+   154→export function CategoryBar({
+   155→  platforms,
+   156→  active,
+   157→  onSelect,
+   158→}: {
+   159→  platforms: Platform[];
+   160→  active: string | null;
+   161→  onSelect: (id: string) => void;
+   162→}) {
+   163→  const { t } = useI18n();
+   164→  const [kind, setKind] = useState<"social" | "game">("social");
+   165→
+   166→  const filtered = useMemo(() => platforms.filter((p) => p.kind === kind), [platforms, kind]);
+   167→
+   168→  // derived effective selection — no state-sync effects needed
+   169→  const activeId = active && filtered.some((p) => p.id === active) ? active : filtered[0]?.id ?? null;
+   170→
+   171→  const switchKind = (k: "social" | "game") => {
+   172→    setKind(k);
+   173→    const list = platforms.filter((p) => p.kind === k);
+   174→    if (list.length && !list.some((p) => p.id === active)) onSelect(list[0].id);
+   175→  };
+   176→
+   177→  return (
+   178→    <div className="space-y-4">
+   179→      <div className="flex justify-center">
+   180→        <Segmented
+   181→          value={kind}
+   182→          onChange={(v) => switchKind(v as "social" | "game")}
+   183→          options={[
+   184→            { value: "social", label: <span className="flex items-center gap-1.5"><Sparkles size={12} /> {t("shop.social")}</span> },
+   185→            { value: "game", label: <span className="flex items-center gap-1.5"><Gamepad2 size={12} /> {t("shop.games")}</span> },
+   186→          ]}
+   187→        />
+   188→      </div>
+   189→
+   190→      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:justify-center sm:px-0">
+   191→        <AnimatePresence mode="popLayout">
+   192→          {filtered.map((p, i) => {
+   193→            const isActive = p.id === activeId;
+   194→            return (
+   195→              <motion.button
+   196→                layout
+   197→                key={p.id}
+   198→                initial={{ opacity: 0, scale: 0.85, y: 10 }}
+   199→                animate={{ opacity: 1, scale: 1, y: 0 }}
+   200→                exit={{ opacity: 0, scale: 0.9 }}
+   201→                transition={{ delay: i * 0.03, type: "spring", stiffness: 380, damping: 28 }}
+   202→                whileHover={{ y: -2 }}
+   203→                whileTap={{ scale: 0.95 }}
+   204→                onClick={() => onSelect(p.id)}
+   205→                aria-pressed={isActive}
+   206→                className={cn(
+   207→                  "glass flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all",
+   208→                  isActive && "pill-active",
+   209→                )}
+   210→                style={isActive ? { color: p.color } : undefined}
+   211→              >
+   212→                <PlatformIcon id={p.id} size={17} className={cn(!isActive && "text-muted-foreground")} />
+   213→                <span className={cn(!isActive && "text-muted-foreground")}>{p.name}</span>
+   214→              </motion.button>
+   215→            );
+   216→          })}
+   217→        </AnimatePresence>
+   218→      </div>
+   219→    </div>
+   220→  );
+   221→}
+   222→
+   223→/* ======================= CONFIGURATOR ======================= */
+   224→
+   225→function ServiceRow({
+   226→  service,
+   227→  active,
+   228→  onClick,
+   229→}: {
+   230→  service: ServiceType;
+   231→  active: boolean;
+   232→  onClick: () => void;
+   233→}) {
+   234→  return (
+   235→    <button
+   236→      onClick={onClick}
+   237→      className={cn(
+   238→        "group flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-300",
+   239→        active
+   240→          ? "pill-active bg-accent"
+   241→          : "border-border/70 bg-transparent hover:border-acc-1/35 hover:bg-muted/60",
+   242→      )}
+   243→    >
+   244→      <span className="min-w-0">
+   245→        <span className="block truncate text-sm font-semibold">
+   246→          <Tx text={service.name} />
+   247→        </span>
+   248→        {service.speed ? (
+   249→          <span className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+   250→            <Gauge size={10} />
+   251→            <Tx text={service.speed} />
+   252→          </span>
+   253→        ) : null}
+   254→      </span>
+   255→      <ChevronRight size={15} className={cn("shrink-0 transition-transform group-hover:translate-x-0.5", active ? "text-acc-1" : "text-muted-foreground")} />
+   256→    </button>
+   257→  );
+   258→}
+   259→
+   260→export function Configurator({
+   261→  platformId,
+   262→  onSelectPlatform,
+   263→}: {
+   264→  platformId: string | null;
+   265→  onSelectPlatform: (id: string) => void;
+   266→}) {
+   267→  const { t } = useI18n();
+   268→  const { platforms } = useCatalog();
+   269→  const { settings } = useSettings();
+   270→  const { currency } = useUI();
+   271→  const draft = useDraft();
+   272→
+   273→  const [typeId, setTypeId] = useState<string | null>(draft.typeId);
+   274→  const [qty, setQty] = useState<number>(draft.quantity ?? 1000);
+   275→  const [packageId, setPackageId] = useState<string | null>(draft.packageId);
+   276→  const [playerId, setPlayerId] = useState(draft.playerId ?? "");
+   277→  const [link, setLink] = useState(draft.link ?? "");
+   278→  const [err, setErr] = useState("");
+   279→
+   280→  /* derived selection chain — zero sync effects */
+   281→  const platform = platforms.find((p) => p.id === platformId) ?? platforms[0] ?? null;
+   282→  const activeServices = useMemo(
+   283→    () => platform?.services.filter((s) => s.active) ?? [],
+   284→    [platform],
+   285→  );
+   286→  const service = activeServices.find((s) => s.id === typeId) ?? activeServices[0] ?? null;
+   287→  const isGame = platform?.kind === "game";
+   288→  const effPackageId =
+   289→    service?.packages?.length
+   290→      ? service.packages.some((p) => p.id === packageId)
+   291→        ? packageId
+   292→        : service.packages[0].id
+   293→      : null;
+   294→
+   295→  const price = useMemo(() => {
+   296→    if (!service) return { usd: 0, valid: false, qty: 0 };
+   297→    if (service.packages?.length) {
+   298→      const pk = findPackage(service, effPackageId);
+   299→      return { usd: pk?.priceUSD ?? 0, valid: true, qty: pk?.qty ?? 0 };
+   300→    }
+   301→    const r = calcQtyPrice(service, qty);
+   302→    return { usd: r.usd, valid: r.valid, qty: r.qty };
+   303→  }, [service, effPackageId, qty]);
+   304→
+   305→  const shown = currency === "NPR" ? fmtNPR(convertUSD(price.usd, settings.exchangeRate)) : fmtUSD(price.usd);
+   306→
+   307→  const buy = () => {
+   308→    setErr("");
+   309→    if (!platform || !service) return;
+   310→    if (service.packages?.length && !effPackageId) {
+   311→      setErr(t("shop.package"));
+   312→      return;
+   313→    }
+   314→    if (!service.packages?.length && !price.valid) {
+   315→      setErr(`${t("shop.min")}: ${service.minQty ?? 100}`);
+   316→      return;
+   317→    }
+   318→    if (isGame && !playerId.trim()) {
+   319→      setErr(t("shop.uidHint"));
+   320→      document.getElementById("cfg-player")?.focus();
+   321→      return;
+   322→    }
+   323→    draft.setDraft({
+   324→      platformId: platform.id,
+   325→      typeId: service.id,
+   326→      quantity: service.packages?.length ? null : price.qty,
+   327→      packageId: service.packages?.length ? effPackageId : null,
+   328→      playerId: playerId.trim(),
+   329→      link: link.trim(),
+   330→    });
+   331→    navigate("/checkout");
+   332→  };
+   333→
+   334→  const sliderFill =
+   335→    service && service.maxQty && service.maxQty > (service.minQty ?? 100)
+   336→      ? `${(((qty - (service.minQty ?? 100)) / (service.maxQty - (service.minQty ?? 100))) * 100).toFixed(1)}%`
+   337→      : "50%";
+   338→
+   339→  return (
+   340→    <GlassCard className="overflow-hidden p-0">
+   341→      <div className="grid lg:grid-cols-[320px_1fr]">
+   342→        {/* service list */}
+   343→        <div className="border-b border-border/60 p-5 lg:border-b-0 lg:border-r">
+   344→          {platform ? (
+   345→            <div className="mb-4 flex items-center gap-3">
+   346→              <span className="glass flex h-11 w-11 items-center justify-center rounded-xl" style={{ color: platform.color }}>
+   347→                <PlatformIcon id={platform.id} size={22} />
+   348→              </span>
+   349→              <div className="min-w-0">
+   350→                <p className="truncate text-sm font-bold">{platform.name}</p>
+   351→                <p className="text-[11px] text-muted-foreground">
+   352→                  {activeServices.length} {t("nav.services").toLowerCase()}
+   353→                </p>
+   354→              </div>
+   355→            </div>
+   356→          ) : null}
+   357→
+   358→          <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1 lg:max-h-[420px]">
+   359→            {activeServices.map((s) => (
+   360→              <ServiceRow key={s.id} service={s} active={s.id === service?.id} onClick={() => setTypeId(s.id)} />
+   361→            ))}
+   362→            {platform && activeServices.length === 0 ? (
+   363→              <p className="py-8 text-center text-xs text-muted-foreground">{t("shop.selectPrompt")}</p>
+   364→            ) : null}
+   365→          </div>
+   366→        </div>
+   367→
+   368→        {/* config panel */}
+   369→        <div className="p-5 sm:p-6">
+   370→          <AnimatePresence mode="wait">
+   371→            {service ? (
+   372→              <motion.div
+   373→                key={`${platform?.id}-${service.id}`}
+   374→                initial={{ opacity: 0, x: 18 }}
+   375→                animate={{ opacity: 1, x: 0 }}
+   376→                exit={{ opacity: 0, x: -14 }}
+   377→                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+   378→                className="space-y-5"
+   379→              >
+   380→                <div className="flex flex-wrap items-center gap-2">
+   381→                  <h3 className="text-lg font-bold">
+   382→                    <Tx text={service.name} />
+   383→                  </h3>
+   384→                  {service.warranty ? (
+   385→                    <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
+   386→                      <Tx text={service.warranty} />
+   387→                    </span>
+   388→                  ) : null}
+   389→                  {service.speed ? (
+   390→                    <span className="flex items-center gap-1 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-500">
+   391→                      <Zap size={10} />
+   392→                      <Tx text={service.speed} />
+   393→                    </span>
+   394→                  ) : null}
+   395→                </div>
+   396→
+   397→                {service.description ? (
+   398→                  <p className="text-sm leading-relaxed text-muted-foreground">
+   399→                    <Tx text={service.description} />
+   400→                  </p>
+   401→                ) : null}
+   402→
+   403→                {/* quantity based */}
+   404→                {!service.packages?.length && service.pricePerKUSD ? (
+   405→                  <div className="space-y-4">
+   406→                    <div className="flex items-center justify-between gap-3">
+   407→                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+   408→                        {t("shop.quantity")}
+   409→                      </span>
+   410→                      <div className="flex items-center gap-1.5">
+   411→                        {[500, 1000, 5000, 10000].map((v) => (
+   412→                          <button
+   413→                            key={v}
+   414→                            onClick={() => setQty(v)}
+   415→                            className={cn(
+   416→                              "rounded-lg px-2 py-1 font-mono text-[11px] font-bold transition-colors",
+   417→                              qty === v ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted",
+   418→                            )}
+   419→                          >
+   420→                            {v >= 1000 ? `${v / 1000}k` : v}
+   421→                          </button>
+   422→                        ))}
+   423→                      </div>
+   424→                    </div>
+   425→
+   426→                    <input
+   427→                      type="range"
+   428→                      className="slider-accent"
+   429→                      style={{ ["--fill" as string]: sliderFill }}
+   430→                      min={service.minQty ?? 100}
+   431→                      max={service.maxQty ?? 100000}
+   432→                      step={service.stepQty ?? 50}
+   433→                      value={qty}
+   434→                      onChange={(e) => setQty(Number(e.target.value))}
+   435→                      aria-label={t("shop.quantity")}
+   436→                    />
+   437→
+   438→                    <div className="flex items-center gap-3">
+   439→                      <TextInput
+   440→                        type="number"
+   441→                        value={qty}
+   442→                        min={service.minQty}
+   443→                        max={service.maxQty}
+   444→                        step={service.stepQty}
+   445→                        onChange={(e) => setQty(Math.max(0, Number(e.target.value) || 0))}
+   446→                        className="w-36 font-mono"
+   447→                        aria-label={t("shop.quantity")}
+   448→                      />
+   449→                      <span className="text-xs text-muted-foreground">
+   450→                        {t("shop.min")}: {service.minQty} · {t("shop.max")}: {(service.maxQty ?? 0).toLocaleString()} · {fmtUSD(service.pricePerKUSD ?? 0)} {t("shop.perK")}
+   451→                      </span>
+   452→                    </div>
+   453→
+   454→                    {!isGame ? (
+   455→                      <div className="relative">
+   456→                        <Link2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+   457→                        <TextInput
+   458→                          value={link}
+   459→                          onChange={(e) => setLink(e.target.value)}
+   460→                          placeholder={t("shop.linkHint")}
+   461→                          className="pl-9"
+   462→                        />
+   463→                      </div>
+   464→                    ) : null}
+   465→                  </div>
+   466→                ) : null}
+   467→
+   468→                {/* packages (games) */}
+   469→                {service.packages?.length ? (
+   470→                  <div className="space-y-4">
+   471→                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+   472→                      {t("shop.package")}
+   473→                    </span>
+   474→                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+   475→                      {service.packages.map((pk) => {
+   476→                        const activeP = pk.id === effPackageId;
+   477→                        return (
+   478→                          <motion.button
+   479→                            key={pk.id}
+   480→                            whileHover={{ y: -2 }}
+   481→                            whileTap={{ scale: 0.97 }}
+   482→                            onClick={() => setPackageId(pk.id)}
+   483→                            className={cn(
+   484→                              "relative rounded-xl border p-3 text-left transition-all duration-300",
+   485→                              activeP ? "pill-active bg-accent" : "border-border/70 hover:border-acc-1/35",
+   486→                            )}
+   487→                          >
+   488→                            {pk.hot ? (
+   489→                              <span className="absolute -top-2 right-2 rounded-full bg-gradient-to-r from-amber-500 to-red-500 px-1.5 py-0.5 text-[9px] font-extrabold text-white">
+   490→                                HOT
+   491→                              </span>
+   492→                            ) : null}
+   493→                            <p className="text-sm font-bold">{pk.label}</p>
+   494→                            {pk.bonus ? <p className="text-[10px] font-semibold text-emerald-500">{pk.bonus}</p> : null}
+   495→                            <p className="mt-1 font-mono text-xs text-acc-1">
+   496→                              {currency === "NPR" ? fmtNPR(convertUSD(pk.priceUSD, settings.exchangeRate)) : fmtUSD(pk.priceUSD)}
+   497→                            </p>
+   498→                          </motion.button>
+   499→                        );
+   500→                      })}
+   501→                    </div>
+   502→
+   503→                    <div className="relative">
+   504→                      <Gamepad2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+   505→                      <TextInput
+   506→                        id="cfg-player"
+   507→                        value={playerId}
+   508→                        onChange={(e) => setPlayerId(e.target.value)}
+   509→                        placeholder={`${t("shop.uidLabel")} — ${t("shop.uidHint")}`}
+   510→                        className="pl-9"
+   511→                      />
+   512→                    </div>
+   513→                  </div>
+   514→                ) : null}
+   515→
+   516→                {/* mandatory drop disclaimer */}
+   517→                <motion.p
+   518→                  initial={{ opacity: 0 }}
+   519→                  animate={{ opacity: 1 }}
+   520→                  transition={{ delay: 0.15 }}
+   521→                  className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-3.5 py-2.5 text-[11px] font-medium leading-relaxed text-amber-500/95"
+   522→                >
+   523→                  <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+   524→                  {t("shop.dropNote")}
+   525→                </motion.p>
+   526→
+   527→                {/* floating checkout — sticky glass total + buy */}
+   528→                <div className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-acc-1/25 bg-gradient-to-r from-[color-mix(in_oklab,var(--acc-1)_10%,transparent)] to-[color-mix(in_oklab,var(--acc-2)_10%,transparent)] p-4 shadow-[0_18px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+   529→                  <div>
+   530→                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+   531→                      {t("shop.price")}
+   532→                    </p>
+   533→                    <AnimatePresence mode="popLayout">
+   534→                      <motion.p
+   535→                        key={shown}
+   536→                        initial={{ opacity: 0, y: 10 }}
+   537→                        animate={{ opacity: 1, y: 0 }}
+   538→                        exit={{ opacity: 0, y: -10 }}
+   539→                        transition={{ duration: 0.22 }}
+   540→                        className="font-[family-name:var(--f-display)] text-2xl font-extrabold text-gradient sm:text-3xl"
+   541→                      >
+   542→                        {shown}
+   543→                      </motion.p>
+   544→                    </AnimatePresence>
+   545→                  </div>
+   546→                  <AccentButton size="lg" onClick={buy} disabled={!price.valid || price.usd <= 0}>
+   547→                    <ShoppingBag size={16} />
+   548→                    {t("shop.buyNow")}
+   549→                  </AccentButton>
+   550→                </div>
+   551→
+   552→                {err ? (
+   553→                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs font-semibold text-red-400">
+   554→                    {err}
+   555→                  </motion.p>
+   556→                ) : null}
+   557→              </motion.div>
+   558→            ) : (
+   559→              <motion.div
+   560→                key="empty"
+   561→                initial={{ opacity: 0 }}
+   562→                animate={{ opacity: 1 }}
+   563→                className="flex h-64 items-center justify-center text-sm text-muted-foreground"
+   564→              >
+   565→                <span className="flex items-center gap-2">
+   566→                  <PackageIcon size={16} />
+   567→                  {t("shop.selectPrompt")}
+   568→                </span>
+   569→              </motion.div>
+   570→            )}
+   571→          </AnimatePresence>
+   572→        </div>
+   573→      </div>
+   574→    </GlassCard>
+   575→  );
+   576→}
+   577→
+   578→/* ======================= SHOP SECTION ======================= */
+   579→
+   580→export function ShopSection() {
+   581→  const { t } = useI18n();
+   582→  const { platforms } = useCatalog();
+   583→  const draft = useDraft();
+   584→  const [active, setActive] = useState<string | null>(draft.platformId);
+   585→
+   586→  return (
+   587→    <section id="shop" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-16 sm:px-6">
+   588→      <SectionTitle eyebrow="ORDER NOW" title={t("shop.title")} sub={t("shop.sub")} center />
+   589→      <CategoryBar platforms={platforms} active={active} onSelect={setActive} />
+   590→      <div className="mt-8">
+   591→        <Configurator platformId={active} onSelectPlatform={setActive} />
+   592→      </div>
+   593→    </section>
+   594→  );
+   595→}
+   596→
+   597→/* ======================= FEATURES ======================= */
+   598→
+   599→export function Features() {
+   600→  const { t } = useI18n();
+   601→  const features = [
+   602→    { icon: <Zap size={20} />, title: t("features.f1t"), desc: t("features.f1d"), tint: "var(--acc-1)" },
+   603→    { icon: <ShieldCheck size={20} />, title: t("features.f2t"), desc: t("features.f2d"), tint: "var(--acc-2)" },
+   604→    { icon: <Bot size={20} />, title: t("features.f3t"), desc: t("features.f3d"), tint: "var(--acc-3)" },
+   605→    { icon: <BadgePercent size={20} />, title: t("features.f4t"), desc: t("features.f4d"), tint: "var(--ok)" },
+   606→  ];
+   607→  return (
+   608→    <section className="mx-auto max-w-7xl px-4 pb-4 sm:px-6">
+   609→      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+   610→        {features.map((f, i) => (
+   611→          <motion.div
+   612→            key={f.title}
+   613→            initial={{ opacity: 0, y: 24 }}
+   614→            whileInView={{ opacity: 1, y: 0 }}
+   615→            viewport={{ once: true, margin: "-40px" }}
+   616→            transition={{ delay: i * 0.08, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+   617→          >
+   618→            <GlassCard hover className="h-full p-5">
+   619→              <div
+   620→                className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl"
+   621→                style={{ color: f.tint, background: `color-mix(in oklab, ${f.tint} 14%, transparent)` }}
+   622→              >
+   623→                {f.icon}
+   624→              </div>
+   625→              <h3 className="text-sm font-bold">{f.title}</h3>
+   626→              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{f.desc}</p>
+   627→            </GlassCard>
+   628→          </motion.div>
+   629→        ))}
+   630→      </div>
+   631→    </section>
+   632→  );
+   633→}
+   634→
+   635→/* ======================= HOW IT WORKS ======================= */
+   636→
+   637→export function HowItWorks() {
+   638→  const { t } = useI18n();
+   639→  const steps = [
+   640→    { icon: <Sparkles size={18} />, title: t("shop.title"), desc: t("shop.sub") },
+   641→    { icon: <ShieldCheck size={18} />, title: t("checkout.payMethod"), desc: t("checkout.payFirst") },
+   642→    { icon: <Rocket size={18} />, title: t("how.s3t"), desc: t("checkout.successMsg") },
+   643→  ];
+   644→  return (
+   645→    <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+   646→      <SectionTitle eyebrow="HOW IT WORKS" title={t("shop.title")} center />
+   647→      <div className="relative grid gap-4 md:grid-cols-3">
+   648→        <div className="absolute left-[16%] right-[16%] top-10 hidden h-px bg-gradient-to-r from-acc-1/40 via-acc-2/40 to-acc-3/40 md:block" />
+   649→        {steps.map((s, i) => (
+   650→          <motion.div
+   651→            key={s.title + String(i)}
+   652→            initial={{ opacity: 0, y: 22 }}
+   653→            whileInView={{ opacity: 1, y: 0 }}
+   654→            viewport={{ once: true, margin: "-40px" }}
+   655→            transition={{ delay: i * 0.12, duration: 0.5 }}
+   656→            className="relative text-center"
+   657→          >
+   658→            <div className="glass relative z-10 mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl" style={{ color: "var(--acc-1)" }}>
+   659→              {s.icon}
+   660→              <span className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full font-mono text-[11px] font-extrabold text-white" style={{ background: "linear-gradient(135deg, var(--acc-1), var(--acc-2))" }}>
+   661→                {i + 1}
+   662→              </span>
+   663→            </div>
+   664→            <h3 className="text-sm font-bold">{s.title}</h3>
+   665→            <p className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-muted-foreground">{s.desc}</p>
+   666→          </motion.div>
+   667→        ))}
+   668→      </div>
+   669→    </section>
+   670→  );
+   671→}
+   672→
