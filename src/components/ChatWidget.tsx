@@ -107,12 +107,12 @@ export function ChatWidget() {
         onClick={() => setChatOpen(!chatOpen)}
         aria-label={t("chat.title")}
         title={t("chat.title")}
-        className="fixed right-5 z-[80] flex h-14 w-14 items-center justify-center rounded-full shadow-[0_10px_36px_-6px_rgba(0,0,0,0.55)] outline-none focus-visible:ring-2 focus-visible:ring-acc-1/70"
+        className="fab-shift fixed right-5 z-[80] flex h-14 w-14 items-center justify-center rounded-full shadow-[0_10px_36px_-6px_rgba(0,0,0,0.55)] outline-none focus-visible:ring-2 focus-visible:ring-acc-1/70"
         style={
           {
             bottom: "max(1.25rem, env(safe-area-inset-bottom))",
-            background: "linear-gradient(135deg, var(--acc-1), var(--acc-2))",
-            color: "#061019",
+            background: "var(--acc-1)",
+            color: "#ffffff",
           } as React.CSSProperties
         }
       >

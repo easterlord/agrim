@@ -126,7 +126,10 @@ function validEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
 }
 
-/** Firebase codes that mean "this provider is unavailable" → use local engine. */
+/** Firebase codes that mean "this provider is unavailable" → use local engine.
+ *  unauthorized-domain: the hosting domain (e.g. denishg.com.np) is not yet
+ *  whitelisted in the Firebase project — email sign-up transparently falls
+ *  back to the built-in local engine so sign-up NEVER breaks. */
 function providerDisabledCode(code?: string): boolean {
   return [
     "auth/operation-not-allowed",
@@ -137,6 +140,8 @@ function providerDisabledCode(code?: string): boolean {
     "auth/admin-restricted-operation",
     "auth/network-request-failed",
     "auth/internal-error",
+    "auth/unauthorized-domain",
+    "auth/operation-not-supported-in-this-environment",
   ].includes(code ?? "");
 }
 

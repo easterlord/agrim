@@ -56,6 +56,8 @@ export interface ServiceType {
   speed?: string;
   /** e.g. "30 days refill" */
   warranty?: string;
+  /** shown as a "Cancel ✓" capability badge (default: true for social) */
+  cancellable?: boolean;
   description?: string;
   active: boolean;
 }
@@ -254,6 +256,10 @@ export interface FirebaseClientConfig {
   messagingSenderId?: string;
   appId: string;
   measurementId?: string;
+  /** VAPID key for Web Push (FCM console — Cloud Messaging cert pair) */
+  webPushPublicKey?: string;
+  /** RTDB legacy database secret — used as ?auth= on the REST fallback only */
+  databaseSecret?: string;
 }
 
 /* ---------------- Realtime sync status ---------------- */

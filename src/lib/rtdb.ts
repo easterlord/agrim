@@ -52,9 +52,10 @@ export function getFirebaseConfig(): FirebaseClientConfig {
     /* ignore */
   }
 
-  // 2) build-time env vars (optional overrides)
+  // 2) build-time env vars (optional overrides — secret/push keys always kept)
   const env = process.env;
   return {
+    ...base,
     apiKey: env.NEXT_PUBLIC_FIREBASE_API_KEY || base.apiKey,
     authDomain: env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || base.authDomain,
     databaseURL:
@@ -94,6 +95,17 @@ export function firebaseAuthConfigured(): boolean {
 let resolvedDbUrl: string | null = null;
 let urlPromise: Promise<string> | null = null;
 
+/** Only endpoints of THIS project are acceptable — never probe cross-project. */
+function sameProject(url: string): boolean {
+  try {
+    return /^(https:\/\/)?[a-z0-9-]*ezfamenp-default-rtdb\.(firebasedatabase\.app|firebaseio\.com)/i.test(
+      url.replace(/^https?:\/\//, "https://"),
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function probeUrl(url: string, timeoutMs = 4000): Promise<boolean> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
@@ -102,7 +114,7 @@ async function probeUrl(url: string, timeoutMs = 4000): Promise<boolean> {
       signal: ctrl.signal,
       cache: "no-store",
     });
-    return res.ok;
+    return res.ok || res.status === 401; // 401 still proves the endpoint exists
   } catch {
     return false;
   } finally {
@@ -112,20 +124,20 @@ async function probeUrl(url: string, timeoutMs = 4000): Promise<boolean> {
 
 /**
  * Resolve the reachable RTDB endpoint: admin override → cached probe
- * result → candidate probe. Never throws; resolves to the best guess
- * even when every probe fails (offline mode still works).
+ * result → candidate probe (same project only). Never throws; resolves
+ * to the exact configured URL even when every probe fails.
  */
 export function resolveDatabaseUrl(): Promise<string> {
   if (resolvedDbUrl) return Promise.resolve(resolvedDbUrl);
   if (urlPromise) return urlPromise;
 
   urlPromise = (async () => {
-    // explicit admin override always wins
+    // explicit admin override always wins (validated to be this project)
     try {
       const raw = localStorage.getItem(LS_CONFIG);
       if (raw) {
         const parsed = JSON.parse(raw) as Partial<FirebaseClientConfig>;
-        if (parsed.databaseURL) {
+        if (parsed.databaseURL && sameProject(parsed.databaseURL)) {
           resolvedDbUrl = parsed.databaseURL;
           return resolvedDbUrl;
         }
@@ -138,10 +150,10 @@ export function resolveDatabaseUrl(): Promise<string> {
       return resolvedDbUrl;
     }
 
-    // previously probed + cached
+    // previously probed + cached (must belong to this project)
     try {
       const cached = localStorage.getItem(LS_DB_URL);
-      if (cached && (await probeUrl(cached, 3000))) {
+      if (cached && sameProject(cached) && (await probeUrl(cached, 3000))) {
         resolvedDbUrl = cached;
         return resolvedDbUrl;
       }
@@ -291,6 +303,19 @@ function restRoot(): string {
   return getFirebaseConfig().databaseURL.replace(/\/+$/, "");
 }
 
+/**
+ * REST path with legacy-database-secret auth. When RTDB rules require
+ * authentication, the SDK websocket gets it from the project config;
+ * the REST/SSE fallback uses the secret supplied in the console.
+ */
+function restUrl(path: string): string {
+  const clean = path.replace(/^\/+/, "").replace(/\/+$/, "");
+  let url = clean ? `${restRoot()}/${clean}.json` : `${restRoot()}/.json`;
+  const secret = getFirebaseConfig().databaseSecret;
+  if (secret) url += `${url.includes("?") ? "&" : "?"}auth=${encodeURIComponent(secret)}`;
+  return url;
+}
+
 function withTimeout(ms: number): { signal: AbortSignal; done: () => void } {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), ms);
@@ -300,7 +325,7 @@ function withTimeout(ms: number): { signal: AbortSignal; done: () => void } {
 async function restGet<T>(path: string): Promise<T | null> {
   const { signal, done } = withTimeout(7000);
   try {
-    const res = await fetch(`${restRoot()}/${path}.json`, { signal, cache: "no-store" });
+    const res = await fetch(restUrl(path), { signal, cache: "no-store" });
     if (!res.ok) throw new Error(`rest-${res.status}`);
     const json = (await res.json()) as T;
     return json;
@@ -318,16 +343,16 @@ async function restWrite(
   try {
     let res: Response;
     if (mode === "remove") {
-      res = await fetch(`${restRoot()}/${path}.json`, { method: "DELETE", signal });
+      res = await fetch(restUrl(path), { method: "DELETE", signal });
     } else if (mode === "set") {
-      res = await fetch(`${restRoot()}/${path}.json`, {
+      res = await fetch(restUrl(path), {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(value ?? null),
         signal,
       });
     } else {
-      res = await fetch(`${restRoot()}/${path}.json`, {
+      res = await fetch(restUrl(path), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(value ?? {}),
@@ -379,7 +404,7 @@ function startSSE(
 
   (async () => {
     try {
-      const res = await fetch(`${restRoot()}/${path}.json`, {
+      const res = await fetch(restUrl(path), {
         headers: { Accept: "text/event-stream" },
         signal: ctrl.signal,
         cache: "no-store",

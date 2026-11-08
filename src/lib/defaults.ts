@@ -9,23 +9,29 @@ import type { FirebaseClientConfig, Platform, Settings } from "./types";
  * Exact Firebase web configuration for the EzFame project.
  * Initialized strictly with these values — env vars or the admin
  * panel may only OVERRIDE them, never partially merge.
+ *
+ * databaseURL is the EXACT endpoint from the Firebase console
+ * (asia-southeast1 instance — probe fallbacks stay inside this
+ * same project, never cross projects).
  */
 export const DEFAULT_FIREBASE_CONFIG: FirebaseClientConfig = {
   apiKey: "AIzaSyCE9zM7OrYpe6JjRi_6Jrh1iLR-Vs9CEWs",
   authDomain: "ezfamenp.firebaseapp.com",
-  databaseURL: "https://ezfamenp-default-rtdb.firebaseio.com",
+  databaseURL: "https://ezfamenp-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "ezfamenp",
   storageBucket: "ezfamenp.firebasestorage.app",
   messagingSenderId: "400639031140",
   appId: "1:400639031140:web:b419a71bb735801f882c71",
   measurementId: "G-44H6GEF9W3",
+  webPushPublicKey:
+    "BD72cQYXH3hRCsmCWazJu7GgpODAjRio7BtcC9bKvGRtdriNliSe3cwn2pmLTdh9X0XVaOD6nvxEQRsmA4YEud8",
+  databaseSecret: "cGAOkDohwGUKQJmhaRfLCRABN1XCv5jKMLjEFLiR",
 };
 
-/** Best-guess RTDB endpoints probed at runtime (first reachable one wins). */
+/** Same-project RTDB endpoints probed at runtime (first reachable one wins). */
 export const RTDB_URL_CANDIDATES = [
-  "https://ezfamenp-default-rtdb.firebaseio.com",
   "https://ezfamenp-default-rtdb.asia-southeast1.firebasedatabase.app",
-  "https://cipher-dump-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "https://ezfamenp-default-rtdb.firebaseio.com",
 ];
 
 export const DEFAULT_DB_URL = RTDB_URL_CANDIDATES[0];
@@ -56,6 +62,7 @@ const svc = (
   maxQty: 100000,
   stepQty: 50,
   speed: "0-1 h",
+  cancellable: true,
   active: true,
   ...extra,
 });
@@ -238,6 +245,7 @@ export const DEFAULT_CATALOG: Platform[] = [
         minQty: 1,
         maxQty: 1,
         stepQty: 1,
+        cancellable: false,
         active: true,
         speed: "5-30 min",
         description: "Instant UC top-up via player UID. Works on all PUBG Mobile servers.",
@@ -266,6 +274,7 @@ export const DEFAULT_CATALOG: Platform[] = [
         minQty: 1,
         maxQty: 1,
         stepQty: 1,
+        cancellable: false,
         active: true,
         speed: "5-30 min",
         description: "Diamonds delivered directly to your Free Fire player ID.",
@@ -294,6 +303,7 @@ export const DEFAULT_CATALOG: Platform[] = [
         minQty: 1,
         maxQty: 1,
         stepQty: 1,
+        cancellable: false,
         active: true,
         speed: "5-30 min",
         description: "Double-check your User ID + Zone ID before ordering.",
@@ -322,6 +332,7 @@ export const DEFAULT_CATALOG: Platform[] = [
         minQty: 1,
         maxQty: 1,
         stepQty: 1,
+        cancellable: false,
         active: true,
         speed: "10-60 min",
         description: "Radianite & VP loaded via Riot ID (name#tag).",
@@ -349,6 +360,7 @@ export const DEFAULT_CATALOG: Platform[] = [
         minQty: 1,
         maxQty: 1,
         stepQty: 1,
+        cancellable: false,
         active: true,
         speed: "10-60 min",
         description: "Robux delivered via gamepass — username required.",

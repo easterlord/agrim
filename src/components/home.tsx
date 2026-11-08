@@ -1,8 +1,14 @@
 "use client";
 
 /* ============================================================
- * EzFame — home view: hero, category pills, configurator,
- * live pricing, stats, features, how-it-works.
+ * EzFame — smm.gg-school dashboard.
+ *
+ * Layout (xl): [ Sidebar nav | Platform pills + service builder
+ *               | sticky "Your Order" summary ]
+ * Mobile: nav collapses to chips, summary docks to a bottom bar.
+ *
+ * Design rules: flat panels, hairline borders, one blue accent,
+ * platform-colored icons, Framer Motion micro-interactions.
  * ============================================================ */
 
 import { AnimatePresence, motion } from "framer-motion";
@@ -10,11 +16,15 @@ import {
   AlertTriangle,
   BadgePercent,
   Bot,
-  ChevronRight,
+  Check,
   Gamepad2,
   Gauge,
+  LayoutGrid,
+  Layers,
+  LifeBuoy,
   Link2,
   Package as PackageIcon,
+  RotateCcw,
   Rocket,
   ShieldCheck,
   ShoppingBag,
@@ -23,11 +33,17 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { PlatformIcon } from "@/components/icons";
-import { CountUp, GlassCard, AccentButton, SectionTitle, Segmented, TextInput } from "@/components/ui-kit";
+import {
+  CountUp,
+  GlassCard,
+  AccentButton,
+  Segmented,
+  TextInput,
+} from "@/components/ui-kit";
 import { Tx, useI18n } from "@/lib/i18n";
 import { useCatalog, useSettings } from "@/lib/data";
 import { useDraft, useUI } from "@/lib/store";
-import { navigate } from "@/lib/router";
+import { navigate, useHashRoute } from "@/lib/router";
 import { calcQtyPrice, cn, convertUSD, findPackage, fmtNPR, fmtUSD } from "@/lib/utils";
 import type { Platform, ServiceType } from "@/lib/types";
 
@@ -82,7 +98,7 @@ export function Hero() {
         >
           {t("hero.title1")}
           <br />
-          <span className="text-gradient soft-emboss">{t("hero.title2")}</span>
+          <span className="text-gradient">{t("hero.title2")}</span>
         </motion.h1>
 
         <motion.p
@@ -106,7 +122,6 @@ export function Hero() {
           </AccentButton>
           <AccentButton size="lg" variant="ghost" onClick={scrollToShop}>
             {t("hero.cta2")}
-            <ChevronRight size={16} />
           </AccentButton>
         </motion.div>
 
@@ -149,9 +164,85 @@ export function Hero() {
   );
 }
 
-/* ======================= CATEGORY PILLS ======================= */
+/* ======================= SIDEBAR NAV ======================= */
 
-export function CategoryBar({
+export function SidebarNav({ compact = false }: { compact?: boolean }) {
+  const { t } = useI18n();
+  const route = useHashRoute();
+  const path = route.path || "";
+
+  const items = [
+    { id: "", label: t("side.newOrder"), icon: <Rocket size={16} />, to: "/" },
+    { id: "services", label: t("side.services"), icon: <LayoutGrid size={16} />, to: "/services" },
+    { id: "orders", label: t("side.orders"), icon: <PackageIcon size={16} />, to: "/orders" },
+    { id: "mass", label: t("side.mass"), icon: <Layers size={16} />, to: "/mass" },
+    { id: "refunds", label: t("side.refunds"), icon: <RotateCcw size={16} />, to: "/refunds" },
+    { id: "support", label: t("side.support"), icon: <LifeBuoy size={16} />, to: "/support" },
+  ];
+
+  if (compact) {
+    return (
+      <nav className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0" aria-label={t("side.menu")}>
+        {items.map((item) => {
+          const active = item.id === path;
+          return (
+            <button
+              key={item.id || "new"}
+              onClick={() => navigate(item.to)}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex shrink-0 items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold transition-all",
+                active
+                  ? "border-transparent bg-acc-1 text-white"
+                  : "border-border bg-panel text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          );
+        })}
+      </nav>
+    );
+  }
+
+  return (
+    <nav className="hidden xl:block" aria-label={t("side.menu")}>
+      <GlassCard className="sticky top-24 overflow-hidden p-3">
+        <p className="px-3 pb-2 pt-1 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+          {t("side.menu")}
+        </p>
+        <div className="space-y-1">
+          {items.map((item) => {
+            const active = item.id === path;
+            return (
+              <motion.button
+                key={item.id || "new"}
+                onClick={() => navigate(item.to)}
+                whileTap={{ scale: 0.98 }}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
+                  active
+                    ? "bg-acc-1 text-white"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <span className={cn("shrink-0", !active && "opacity-80")}>{item.icon}</span>
+                <span className="truncate">{item.label}</span>
+                {active ? <span className="ml-auto h-1.5 w-1.5 rounded-full bg-white/80" /> : null}
+              </motion.button>
+            );
+          })}
+        </div>
+      </GlassCard>
+    </nav>
+  );
+}
+
+/* ======================= PLATFORM PILLS ======================= */
+
+function PlatformPills({
   platforms,
   active,
   onSelect,
@@ -161,11 +252,11 @@ export function CategoryBar({
   onSelect: (id: string) => void;
 }) {
   const { t } = useI18n();
-  const [kind, setKind] = useState<"social" | "game">("social");
+  const [kind, setKind] = useState<"social" | "game">(
+    platforms.find((p) => p.id === active)?.kind ?? "social",
+  );
 
   const filtered = useMemo(() => platforms.filter((p) => p.kind === kind), [platforms, kind]);
-
-  // derived effective selection — no state-sync effects needed
   const activeId = active && filtered.some((p) => p.id === active) ? active : filtered[0]?.id ?? null;
 
   const switchKind = (k: "social" | "game") => {
@@ -176,7 +267,11 @@ export function CategoryBar({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-center">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold tracking-tight">{t("shop.title")}</h2>
+          <p className="text-xs text-muted-foreground">{t("shop.sub")}</p>
+        </div>
         <Segmented
           value={kind}
           onChange={(v) => switchKind(v as "social" | "game")}
@@ -187,7 +282,7 @@ export function CategoryBar({
         />
       </div>
 
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:justify-center sm:px-0">
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
         <AnimatePresence mode="popLayout">
           {filtered.map((p, i) => {
             const isActive = p.id === activeId;
@@ -204,13 +299,14 @@ export function CategoryBar({
                 onClick={() => onSelect(p.id)}
                 aria-pressed={isActive}
                 className={cn(
-                  "glass flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-all",
-                  isActive && "pill-active",
+                  "flex shrink-0 items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition-all",
+                  isActive
+                    ? "border-transparent bg-acc-1 text-white"
+                    : "border-border bg-panel text-muted-foreground hover:text-foreground",
                 )}
-                style={isActive ? { color: p.color } : undefined}
               >
-                <PlatformIcon id={p.id} size={17} className={cn(!isActive && "text-muted-foreground")} />
-                <span className={cn(!isActive && "text-muted-foreground")}>{p.name}</span>
+                <PlatformIcon id={p.id} size={17} />
+                <span>{p.name}</span>
               </motion.button>
             );
           })}
@@ -220,56 +316,239 @@ export function CategoryBar({
   );
 }
 
-/* ======================= CONFIGURATOR ======================= */
+/* ======================= SERVICE CARDS ======================= */
 
-function ServiceRow({
-  service,
-  active,
-  onClick,
+function ServiceBadge({
+  tone,
+  children,
 }: {
-  service: ServiceType;
-  active: boolean;
-  onClick: () => void;
+  tone: "ok" | "info" | "warn" | "neutral";
+  children: React.ReactNode;
 }) {
+  const tones = {
+    ok: "border-emerald-500/35 bg-emerald-500/10 text-emerald-500",
+    info: "border-sky-500/35 bg-sky-500/10 text-sky-500",
+    warn: "border-amber-500/35 bg-amber-500/10 text-amber-500",
+    neutral: "border-border bg-muted text-muted-foreground",
+  };
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "group flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-300",
-        active
-          ? "pill-active bg-accent"
-          : "border-border/70 bg-transparent hover:border-acc-1/35 hover:bg-muted/60",
-      )}
-    >
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-semibold">
-          <Tx text={service.name} />
-        </span>
-        {service.speed ? (
-          <span className="mt-0.5 flex items-center gap-1 text-[11px] text-muted-foreground">
-            <Gauge size={10} />
-            <Tx text={service.speed} />
-          </span>
-        ) : null}
-      </span>
-      <ChevronRight size={15} className={cn("shrink-0 transition-transform group-hover:translate-x-0.5", active ? "text-acc-1" : "text-muted-foreground")} />
-    </button>
+    <span className={cn("inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold", tones[tone])}>
+      {children}
+    </span>
   );
 }
 
-export function Configurator({
-  platformId,
-  onSelectPlatform,
+function Badges({ service }: { service: ServiceType }) {
+  const { t } = useI18n();
+  const fast = !!service.speed && /^(0\s*-\s*1|5\s*-\s*30\s*min|instant)/i.test(service.speed);
+  return (
+    <span className="flex flex-wrap items-center gap-1">
+      {service.warranty ? (
+        <ServiceBadge tone="ok">
+          <Check size={9} />
+          <Tx text={service.warranty} />
+        </ServiceBadge>
+      ) : null}
+      {service.speed ? (
+        <ServiceBadge tone="info">
+          <Gauge size={9} />
+          {t("panel.badgeStart")} <Tx text={service.speed} />
+        </ServiceBadge>
+      ) : null}
+      {service.speed ? (
+        <ServiceBadge tone={fast ? "warn" : "neutral"}>
+          <Zap size={9} />
+          {t("panel.badgeSpeed")}: {fast ? t("panel.speedFast") : t("panel.speedNormal")}
+        </ServiceBadge>
+      ) : null}
+      {service.cancellable !== false ? (
+        <ServiceBadge tone="neutral">
+          <Check size={9} />
+          {t("panel.badgeCancel")}
+        </ServiceBadge>
+      ) : null}
+    </span>
+  );
+}
+
+function ServiceRow({
+  service,
+  currency,
+  rate,
+  active,
+  onSelect,
 }: {
-  platformId: string | null;
-  onSelectPlatform: (id: string) => void;
+  service: ServiceType;
+  currency: "USD" | "NPR";
+  rate: number;
+  active: boolean;
+  onSelect: () => void;
 }) {
+  const shown =
+    currency === "NPR"
+      ? fmtNPR(convertUSD(service.pricePerKUSD ?? 0, rate))
+      : fmtUSD(service.pricePerKUSD ?? 0);
+
+  return (
+    <motion.button
+      layout
+      onClick={onSelect}
+      whileTap={{ scale: 0.985 }}
+      aria-pressed={active}
+      className={cn(
+        "group flex w-full items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-all",
+        active ? "border-acc-1/60 bg-accent" : "border-border bg-panel hover:border-input",
+      )}
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold">
+          <Tx text={service.name} />
+        </span>
+        <span className="mt-1.5 flex min-h-[18px] items-center">
+          <Badges service={service} />
+        </span>
+      </span>
+      <span className="shrink-0 text-right">
+        <span className={cn("block font-mono text-sm font-bold", active ? "text-acc-1" : "text-foreground")}>
+          {shown}
+        </span>
+        <span className="text-[10px] text-muted-foreground">/ 1,000</span>
+      </span>
+    </motion.button>
+  );
+}
+
+/* ======================= YOUR ORDER BOX ======================= */
+
+function YourOrderBox({
+  platform,
+  service,
+  pkgLabel,
+  link,
+  qty,
+  priceUSD,
+  valid,
+  rate,
+  currency,
+  err,
+  onBuy,
+}: {
+  platform: Platform | null;
+  service: ServiceType | null;
+  pkgLabel?: string;
+  link: string;
+  qty: number;
+  priceUSD: number;
+  valid: boolean;
+  rate: number;
+  currency: "USD" | "NPR";
+  err: string;
+  onBuy: () => void;
+}) {
+  const { t } = useI18n();
+  const charge = currency === "NPR" ? fmtNPR(convertUSD(priceUSD, rate)) : fmtUSD(priceUSD);
+  const hasOrder = !!platform && !!service;
+
+  return (
+    <GlassCard className="overflow-hidden p-5 xl:sticky xl:top-24 xl:h-max">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+          {t("panel.yourOrder")}
+        </h3>
+        <span className="dot-live" />
+      </div>
+
+      {hasOrder ? (
+        <div className="space-y-3 text-sm">
+          <div className="flex items-center gap-2.5">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border"
+              style={{ color: platform!.color }}
+            >
+              <PlatformIcon id={platform!.id} size={18} />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-semibold">
+                <Tx text={service!.name} />
+              </p>
+              <p className="text-[11px] text-muted-foreground">{platform!.name}</p>
+            </div>
+          </div>
+
+          {pkgLabel ? (
+            <div className="flex items-center justify-between rounded-lg bg-muted px-3 py-2">
+              <span className="text-xs text-muted-foreground">{t("shop.package")}</span>
+              <span className="font-mono text-xs font-bold">{pkgLabel}</span>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between rounded-lg bg-muted px-3 py-2">
+              <span className="text-xs text-muted-foreground">{t("panel.quantity")}</span>
+              <span className="font-mono text-xs font-bold">{qty.toLocaleString()}</span>
+            </div>
+          )}
+
+          {link ? (
+            <div className="rounded-lg bg-muted px-3 py-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("panel.link")}</p>
+              <p className="truncate font-mono text-[11px]">{link}</p>
+            </div>
+          ) : null}
+
+          <div className="flex items-center justify-between border-t border-border pt-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t("panel.charge")}
+            </span>
+            <AnimatePresence mode="popLayout">
+              <motion.span
+                key={charge}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+                className="font-[family-name:var(--f-display)] text-2xl font-extrabold text-gradient"
+              >
+                {charge}
+              </motion.span>
+            </AnimatePresence>
+          </div>
+
+          {currency === "NPR" ? (
+            <p className="text-right text-[10px] text-muted-foreground">
+              {t("panel.rateNow")} · USD 1 = NPR {rate.toFixed(2)}
+            </p>
+          ) : null}
+
+          {err ? <p className="text-xs font-semibold text-red-400">{err}</p> : null}
+
+          <motion.div whileHover={valid ? { scale: 1.015 } : undefined} whileTap={valid ? { scale: 0.985 } : undefined}>
+            <AccentButton size="lg" className="w-full" onClick={onBuy} disabled={!valid || priceUSD <= 0}>
+              <ShoppingBag size={16} />
+              {t("shop.buyNow")}
+            </AccentButton>
+          </motion.div>
+
+          <p className="flex items-start gap-1.5 text-[10px] leading-relaxed text-muted-foreground">
+            <AlertTriangle size={11} className="mt-0.5 shrink-0 text-amber-500" />
+            {t("shop.dropNote")}
+          </p>
+        </div>
+      ) : (
+        <p className="py-8 text-center text-xs text-muted-foreground">{t("panel.orderEmpty")}</p>
+      )}
+    </GlassCard>
+  );
+}
+
+/* ======================= DASHBOARD ======================= */
+
+export function ShopSection() {
   const { t } = useI18n();
   const { platforms } = useCatalog();
   const { settings } = useSettings();
   const { currency } = useUI();
   const draft = useDraft();
 
+  const [platformId, setPlatformId] = useState<string | null>(draft.platformId);
   const [typeId, setTypeId] = useState<string | null>(draft.typeId);
   const [qty, setQty] = useState<number>(draft.quantity ?? 1000);
   const [packageId, setPackageId] = useState<string | null>(draft.packageId);
@@ -277,12 +556,8 @@ export function Configurator({
   const [link, setLink] = useState(draft.link ?? "");
   const [err, setErr] = useState("");
 
-  /* derived selection chain — zero sync effects */
-  const platform = platforms.find((p) => p.id === platformId) ?? platforms[0] ?? null;
-  const activeServices = useMemo(
-    () => platform?.services.filter((s) => s.active) ?? [],
-    [platform],
-  );
+  const platform = platforms.find((p) => p.id === platformId) ?? platforms.find((p) => p.kind === "social") ?? platforms[0] ?? null;
+  const activeServices = useMemo(() => platform?.services.filter((s) => s.active) ?? [], [platform]);
   const service = activeServices.find((s) => s.id === typeId) ?? activeServices[0] ?? null;
   const isGame = platform?.kind === "game";
   const effPackageId =
@@ -302,7 +577,7 @@ export function Configurator({
     return { usd: r.usd, valid: r.valid, qty: r.qty };
   }, [service, effPackageId, qty]);
 
-  const shown = currency === "NPR" ? fmtNPR(convertUSD(price.usd, settings.exchangeRate)) : fmtUSD(price.usd);
+  const selectedPkg = service?.packages?.length ? findPackage(service, effPackageId) : null;
 
   const buy = () => {
     setErr("");
@@ -333,268 +608,277 @@ export function Configurator({
 
   const sliderFill =
     service && service.maxQty && service.maxQty > (service.minQty ?? 100)
-      ? `${(((qty - (service.minQty ?? 100)) / (service.maxQty - (service.minQty ?? 100))) * 100).toFixed(1)}%`
+      ? `${(((price.qty - (service.minQty ?? 100)) / (service.maxQty - (service.minQty ?? 100))) * 100).toFixed(1)}%`
       : "50%";
 
   return (
-    <GlassCard className="overflow-hidden p-0">
-      <div className="grid lg:grid-cols-[320px_1fr]">
-        {/* service list */}
-        <div className="border-b border-border/60 p-5 lg:border-b-0 lg:border-r">
-          {platform ? (
-            <div className="mb-4 flex items-center gap-3">
-              <span className="glass flex h-11 w-11 items-center justify-center rounded-xl" style={{ color: platform.color }}>
-                <PlatformIcon id={platform.id} size={22} />
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-sm font-bold">{platform.name}</p>
-                <p className="text-[11px] text-muted-foreground">
-                  {activeServices.length} {t("nav.services").toLowerCase()}
-                </p>
-              </div>
-            </div>
-          ) : null}
+    <section id="shop" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-10 sm:px-6">
+      {/* compact nav chips — visible below xl (sidebar takes over at xl) */}
+      <div className="mb-4 xl:hidden">
+        <SidebarNav compact />
+      </div>
+      <div className="grid gap-5 xl:grid-cols-[230px_minmax(0,1fr)_310px]">
+        <SidebarNav />
 
-          <div className="max-h-72 space-y-1.5 overflow-y-auto pr-1 lg:max-h-[420px]">
-            {activeServices.map((s) => (
-              <ServiceRow key={s.id} service={s} active={s.id === service?.id} onClick={() => setTypeId(s.id)} />
-            ))}
-            {platform && activeServices.length === 0 ? (
-              <p className="py-8 text-center text-xs text-muted-foreground">{t("shop.selectPrompt")}</p>
-            ) : null}
+        {/* main column */}
+        <div className="min-w-0 space-y-6">
+          <PlatformPills platforms={platforms} active={platform?.id ?? null} onSelect={setPlatformId} />
+
+          <div className="grid gap-5 lg:grid-cols-2 xl:grid-cols-1">
+            {/* service list */}
+            <GlassCard className="overflow-hidden p-4">
+              {platform ? (
+                <div className="mb-3 flex items-center gap-3 border-b border-border pb-3">
+                  <span
+                    className="flex h-10 w-10 items-center justify-center rounded-lg border border-border"
+                    style={{ color: platform.color }}
+                  >
+                    <PlatformIcon id={platform.id} size={20} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold">{platform.name}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {activeServices.length} {t("nav.services").toLowerCase()}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                {activeServices.map((s) => (
+                  <ServiceRow
+                    key={s.id}
+                    service={s}
+                    currency={currency}
+                    rate={settings.exchangeRate}
+                    active={s.id === service?.id}
+                    onSelect={() => setTypeId(s.id)}
+                  />
+                ))}
+                {platform && activeServices.length === 0 ? (
+                  <p className="py-8 text-center text-xs text-muted-foreground">{t("shop.selectPrompt")}</p>
+                ) : null}
+              </div>
+            </GlassCard>
+
+            {/* config */}
+            <GlassCard className="overflow-hidden p-4 sm:p-5 xl:order-none">
+              <AnimatePresence mode="wait">
+                {service ? (
+                  <motion.div
+                    key={`${platform?.id}-${service.id}`}
+                    initial={{ opacity: 0, x: 18 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -14 }}
+                    transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                    className="space-y-5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-bold">
+                          <Tx text={service.name} />
+                        </h3>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          <Badges service={service} />
+                        </p>
+                      </div>
+                    </div>
+
+                    {service.description ? (
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        <Tx text={service.description} />
+                      </p>
+                    ) : null}
+
+                    {/* quantity based */}
+                    {!service.packages?.length && service.pricePerKUSD ? (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            {t("shop.quantity")}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            {[500, 1000, 5000, 10000].map((v) => (
+                              <button
+                                key={v}
+                                onClick={() => setQty(v)}
+                                className={cn(
+                                  "rounded-md px-2 py-1 font-mono text-[11px] font-bold transition-colors",
+                                  price.qty === v ? "bg-acc-1 text-white" : "text-muted-foreground hover:bg-muted",
+                                )}
+                              >
+                                {v >= 1000 ? `${v / 1000}k` : v}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        <input
+                          type="range"
+                          className="slider-accent"
+                          style={{ ["--fill" as string]: sliderFill }}
+                          min={service.minQty ?? 100}
+                          max={service.maxQty ?? 100000}
+                          step={service.stepQty ?? 50}
+                          value={price.qty}
+                          onChange={(e) => setQty(Number(e.target.value))}
+                          aria-label={t("shop.quantity")}
+                        />
+
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <TextInput
+                            type="number"
+                            value={qty}
+                            min={service.minQty}
+                            max={service.maxQty}
+                            step={service.stepQty}
+                            onChange={(e) => setQty(Math.max(0, Number(e.target.value) || 0))}
+                            className="w-36 font-mono"
+                            aria-label={t("shop.quantity")}
+                          />
+                          <span className="font-mono text-[11px] text-muted-foreground">
+                            {t("shop.min")} {(service.minQty ?? 100).toLocaleString()} • {t("shop.max")}{" "}
+                            {(service.maxQty ?? 0).toLocaleString()}
+                          </span>
+                        </div>
+
+                        {!isGame ? (
+                          <div className="relative">
+                            <Link2 size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                            <TextInput
+                              value={link}
+                              onChange={(e) => setLink(e.target.value)}
+                              placeholder={t("shop.linkHint")}
+                              className="pl-10"
+                            />
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {/* packages (games) */}
+                    {service.packages?.length ? (
+                      <div className="space-y-4">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          {t("shop.package")}
+                        </span>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-2 2xl:grid-cols-3">
+                          {service.packages.map((pk) => {
+                            const activeP = pk.id === effPackageId;
+                            return (
+                              <motion.button
+                                key={pk.id}
+                                whileHover={{ y: -2 }}
+                                whileTap={{ scale: 0.97 }}
+                                onClick={() => setPackageId(pk.id)}
+                                className={cn(
+                                  "relative rounded-xl border p-3 text-left transition-all",
+                                  activeP ? "border-acc-1/60 bg-accent" : "border-border hover:border-input",
+                                )}
+                              >
+                                {pk.hot ? (
+                                  <span className="absolute -top-2 right-2 rounded-full bg-amber-500 px-1.5 py-0.5 text-[9px] font-extrabold text-white">
+                                    HOT
+                                  </span>
+                                ) : null}
+                                <p className="text-sm font-bold">{pk.label}</p>
+                                {pk.bonus ? <p className="text-[10px] font-semibold text-emerald-500">{pk.bonus}</p> : null}
+                                <p className={cn("mt-1 font-mono text-xs font-bold", activeP ? "text-acc-1" : "text-muted-foreground")}>
+                                  {currency === "NPR" ? fmtNPR(convertUSD(pk.priceUSD, settings.exchangeRate)) : fmtUSD(pk.priceUSD)}
+                                </p>
+                              </motion.button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="relative">
+                          <Gamepad2 size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                          <TextInput
+                            id="cfg-player"
+                            value={playerId}
+                            onChange={(e) => setPlayerId(e.target.value)}
+                            placeholder={`${t("shop.uidLabel")} — ${t("shop.uidHint")}`}
+                            className="pl-10"
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {/* mandatory drop disclaimer */}
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.15 }}
+                      className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-[11px] font-medium leading-relaxed text-amber-500"
+                    >
+                      <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+                      {t("shop.dropNote")}
+                    </motion.p>
+
+                    {err ? (
+                      <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs font-semibold text-red-400">
+                        {err}
+                      </motion.p>
+                    ) : null}
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="empty"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex h-64 items-center justify-center text-sm text-muted-foreground"
+                  >
+                    <span className="flex items-center gap-2">
+                      <PackageIcon size={16} />
+                      {t("shop.selectPrompt")}
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </GlassCard>
           </div>
         </div>
 
-        {/* config panel */}
-        <div className="p-5 sm:p-6">
-          <AnimatePresence mode="wait">
-            {service ? (
-              <motion.div
-                key={`${platform?.id}-${service.id}`}
-                initial={{ opacity: 0, x: 18 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -14 }}
-                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                className="space-y-5"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="text-lg font-bold">
-                    <Tx text={service.name} />
-                  </h3>
-                  {service.warranty ? (
-                    <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-500">
-                      <Tx text={service.warranty} />
-                    </span>
-                  ) : null}
-                  {service.speed ? (
-                    <span className="flex items-center gap-1 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-2 py-0.5 text-[10px] font-bold text-cyan-500">
-                      <Zap size={10} />
-                      <Tx text={service.speed} />
-                    </span>
-                  ) : null}
-                </div>
-
-                {service.description ? (
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    <Tx text={service.description} />
-                  </p>
-                ) : null}
-
-                {/* quantity based */}
-                {!service.packages?.length && service.pricePerKUSD ? (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {t("shop.quantity")}
-                      </span>
-                      <div className="flex items-center gap-1.5">
-                        {[500, 1000, 5000, 10000].map((v) => (
-                          <button
-                            key={v}
-                            onClick={() => setQty(v)}
-                            className={cn(
-                              "rounded-lg px-2 py-1 font-mono text-[11px] font-bold transition-colors",
-                              qty === v ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-muted",
-                            )}
-                          >
-                            {v >= 1000 ? `${v / 1000}k` : v}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <input
-                      type="range"
-                      className="slider-accent"
-                      style={{ ["--fill" as string]: sliderFill }}
-                      min={service.minQty ?? 100}
-                      max={service.maxQty ?? 100000}
-                      step={service.stepQty ?? 50}
-                      value={qty}
-                      onChange={(e) => setQty(Number(e.target.value))}
-                      aria-label={t("shop.quantity")}
-                    />
-
-                    <div className="flex items-center gap-3">
-                      <TextInput
-                        type="number"
-                        value={qty}
-                        min={service.minQty}
-                        max={service.maxQty}
-                        step={service.stepQty}
-                        onChange={(e) => setQty(Math.max(0, Number(e.target.value) || 0))}
-                        className="w-36 font-mono"
-                        aria-label={t("shop.quantity")}
-                      />
-                      <span className="text-xs text-muted-foreground">
-                        {t("shop.min")}: {service.minQty} · {t("shop.max")}: {(service.maxQty ?? 0).toLocaleString()} · {fmtUSD(service.pricePerKUSD ?? 0)} {t("shop.perK")}
-                      </span>
-                    </div>
-
-                    {!isGame ? (
-                      <div className="relative">
-                        <Link2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                        <TextInput
-                          value={link}
-                          onChange={(e) => setLink(e.target.value)}
-                          placeholder={t("shop.linkHint")}
-                          className="pl-9"
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-
-                {/* packages (games) */}
-                {service.packages?.length ? (
-                  <div className="space-y-4">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      {t("shop.package")}
-                    </span>
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                      {service.packages.map((pk) => {
-                        const activeP = pk.id === effPackageId;
-                        return (
-                          <motion.button
-                            key={pk.id}
-                            whileHover={{ y: -2 }}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={() => setPackageId(pk.id)}
-                            className={cn(
-                              "relative rounded-xl border p-3 text-left transition-all duration-300",
-                              activeP ? "pill-active bg-accent" : "border-border/70 hover:border-acc-1/35",
-                            )}
-                          >
-                            {pk.hot ? (
-                              <span className="absolute -top-2 right-2 rounded-full bg-gradient-to-r from-amber-500 to-red-500 px-1.5 py-0.5 text-[9px] font-extrabold text-white">
-                                HOT
-                              </span>
-                            ) : null}
-                            <p className="text-sm font-bold">{pk.label}</p>
-                            {pk.bonus ? <p className="text-[10px] font-semibold text-emerald-500">{pk.bonus}</p> : null}
-                            <p className="mt-1 font-mono text-xs text-acc-1">
-                              {currency === "NPR" ? fmtNPR(convertUSD(pk.priceUSD, settings.exchangeRate)) : fmtUSD(pk.priceUSD)}
-                            </p>
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="relative">
-                      <Gamepad2 size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                      <TextInput
-                        id="cfg-player"
-                        value={playerId}
-                        onChange={(e) => setPlayerId(e.target.value)}
-                        placeholder={`${t("shop.uidLabel")} — ${t("shop.uidHint")}`}
-                        className="pl-9"
-                      />
-                    </div>
-                  </div>
-                ) : null}
-
-                {/* mandatory drop disclaimer */}
-                <motion.p
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.15 }}
-                  className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-3.5 py-2.5 text-[11px] font-medium leading-relaxed text-amber-500/95"
-                >
-                  <AlertTriangle size={13} className="mt-0.5 shrink-0" />
-                  {t("shop.dropNote")}
-                </motion.p>
-
-                {/* floating checkout — sticky glass total + buy */}
-                <div className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-acc-1/25 bg-gradient-to-r from-[color-mix(in_oklab,var(--acc-1)_10%,transparent)] to-[color-mix(in_oklab,var(--acc-2)_10%,transparent)] p-4 shadow-[0_18px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-                      {t("shop.price")}
-                    </p>
-                    <AnimatePresence mode="popLayout">
-                      <motion.p
-                        key={shown}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.22 }}
-                        className="font-[family-name:var(--f-display)] text-2xl font-extrabold text-gradient sm:text-3xl"
-                      >
-                        {shown}
-                      </motion.p>
-                    </AnimatePresence>
-                  </div>
-                  <AccentButton size="lg" onClick={buy} disabled={!price.valid || price.usd <= 0}>
-                    <ShoppingBag size={16} />
-                    {t("shop.buyNow")}
-                  </AccentButton>
-                </div>
-
-                {err ? (
-                  <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs font-semibold text-red-400">
-                    {err}
-                  </motion.p>
-                ) : null}
-              </motion.div>
-            ) : (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex h-64 items-center justify-center text-sm text-muted-foreground"
-              >
-                <span className="flex items-center gap-2">
-                  <PackageIcon size={16} />
-                  {t("shop.selectPrompt")}
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* sticky summary — desktop */}
+        <div className="hidden xl:block">
+          <YourOrderBox
+            platform={platform}
+            service={service}
+            pkgLabel={selectedPkg?.label}
+            link={link.trim()}
+            qty={price.qty}
+            priceUSD={price.usd}
+            valid={price.valid}
+            rate={settings.exchangeRate}
+            currency={currency}
+            err={err}
+            onBuy={buy}
+          />
         </div>
       </div>
-    </GlassCard>
-  );
-}
 
-/* ======================= SHOP SECTION ======================= */
-
-export function ShopSection() {
-  const { t } = useI18n();
-  const { platforms } = useCatalog();
-  const draft = useDraft();
-  const [active, setActive] = useState<string | null>(draft.platformId);
-
-  return (
-    <section id="shop" className="mx-auto max-w-7xl scroll-mt-24 px-4 py-16 sm:px-6">
-      <SectionTitle eyebrow="ORDER NOW" title={t("shop.title")} sub={t("shop.sub")} center />
-      <CategoryBar platforms={platforms} active={active} onSelect={setActive} />
-      <div className="mt-8">
-        <Configurator platformId={active} onSelectPlatform={setActive} />
+      {/* mobile sticky summary bar */}
+      <div className="sticky bottom-3 z-30 mt-5 xl:hidden">
+        <GlassCard className="flex items-center justify-between gap-3 px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              {t("panel.charge")}
+            </p>
+            <p className="font-[family-name:var(--f-display)] text-lg font-extrabold text-gradient">
+              {currency === "NPR" ? fmtNPR(convertUSD(price.usd, settings.exchangeRate)) : fmtUSD(price.usd)}
+            </p>
+          </div>
+          <AccentButton onClick={buy} disabled={!price.valid || price.usd <= 0}>
+            <ShoppingBag size={15} />
+            {t("shop.buyNow")}
+          </AccentButton>
+        </GlassCard>
       </div>
     </section>
   );
 }
 
-/* ======================= FEATURES ======================= */
+/* ======================= FEATURES (strip) ======================= */
 
 export function Features() {
   const { t } = useI18n();
@@ -617,52 +901,14 @@ export function Features() {
           >
             <GlassCard hover className="h-full p-5">
               <div
-                className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl"
-                style={{ color: f.tint, background: `color-mix(in oklab, ${f.tint} 14%, transparent)` }}
+                className="mb-3 flex h-10 w-10 items-center justify-center rounded-lg border border-border"
+                style={{ color: f.tint, background: `color-mix(in oklab, ${f.tint} 10%, transparent)` }}
               >
                 {f.icon}
               </div>
               <h3 className="text-sm font-bold">{f.title}</h3>
               <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{f.desc}</p>
             </GlassCard>
-          </motion.div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-/* ======================= HOW IT WORKS ======================= */
-
-export function HowItWorks() {
-  const { t } = useI18n();
-  const steps = [
-    { icon: <Sparkles size={18} />, title: t("shop.title"), desc: t("shop.sub") },
-    { icon: <ShieldCheck size={18} />, title: t("checkout.payMethod"), desc: t("checkout.payFirst") },
-    { icon: <Rocket size={18} />, title: t("how.s3t"), desc: t("checkout.successMsg") },
-  ];
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-      <SectionTitle eyebrow="HOW IT WORKS" title={t("shop.title")} center />
-      <div className="relative grid gap-4 md:grid-cols-3">
-        <div className="absolute left-[16%] right-[16%] top-10 hidden h-px bg-gradient-to-r from-acc-1/40 via-acc-2/40 to-acc-3/40 md:block" />
-        {steps.map((s, i) => (
-          <motion.div
-            key={s.title + String(i)}
-            initial={{ opacity: 0, y: 22 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-40px" }}
-            transition={{ delay: i * 0.12, duration: 0.5 }}
-            className="relative text-center"
-          >
-            <div className="glass relative z-10 mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl" style={{ color: "var(--acc-1)" }}>
-              {s.icon}
-              <span className="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full font-mono text-[11px] font-extrabold text-white" style={{ background: "linear-gradient(135deg, var(--acc-1), var(--acc-2))" }}>
-                {i + 1}
-              </span>
-            </div>
-            <h3 className="text-sm font-bold">{s.title}</h3>
-            <p className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-muted-foreground">{s.desc}</p>
           </motion.div>
         ))}
       </div>

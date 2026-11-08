@@ -455,6 +455,12 @@ export function LoginView() {
         return t("auth.errWrong");
       case "auth/email-already-in-use":
         return t("auth.errExists");
+      case "auth/unauthorized-domain":
+        return t("auth.errDomain");
+      case "auth/popup-blocked":
+      case "auth/popup-closed-by-user":
+      case "auth/cancelled-popup-request":
+        return t("auth.errDefault");
       default:
         return t("auth.errDefault");
     }

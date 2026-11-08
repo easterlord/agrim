@@ -181,10 +181,12 @@ export function Toggle({
   checked,
   onChange,
   label,
+  disabled = false,
 }: {
   checked: boolean;
   onChange: (v: boolean) => void;
   label?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
@@ -192,10 +194,12 @@ export function Toggle({
       role="switch"
       aria-checked={checked}
       aria-label={label}
+      disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
         "relative h-6 w-11 shrink-0 rounded-full transition-colors duration-300",
-        checked ? "bg-gradient-to-r from-acc-1 to-acc-2" : "bg-muted-foreground/25",
+        checked ? "bg-acc-1" : "bg-muted-foreground/25",
+        disabled && "pointer-events-none opacity-50",
       )}
     >
       <motion.span

@@ -54,8 +54,11 @@ export function Navbar() {
   }, []);
 
   const links: Array<{ to: string; label: string }> = [
-    { to: "/", label: t("nav.home") },
-    { to: "/orders", label: t("nav.orders") },
+    { to: "/", label: t("side.newOrder") },
+    { to: "/services", label: t("side.services") },
+    { to: "/mass", label: t("side.mass") },
+    { to: "/orders", label: t("side.orders") },
+    { to: "/support", label: t("side.support") },
   ];
 
   const activePath = (to: string) =>

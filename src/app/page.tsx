@@ -18,27 +18,17 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ChatWidget } from "@/components/ChatWidget";
 import { ToastStack } from "@/components/ui-kit";
-import { Features, Hero, HowItWorks, ShopSection } from "@/components/home";
+import { Features, Hero, ShopSection } from "@/components/home";
 import { CheckoutView } from "@/components/checkout";
 import { AccountView, LoginView, OrdersView } from "@/components/views";
 import { AdminView } from "@/components/admin";
+import { MassOrderView, RefundsView, ServicesView, SupportView } from "@/components/panel";
 import { I18nProvider, useI18n } from "@/lib/i18n";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { useThemeEffect, useMounted } from "@/lib/store";
 import { useHashRoute } from "@/lib/router";
 import { ensureSeed } from "@/lib/rtdb";
 import { GlassCard } from "@/components/ui-kit";
-
-/* animated cyberpunk backdrop */
-function Backdrop() {
-  return (
-    <div className="bg-scene" aria-hidden="true">
-      <div className="bg-orb bg-orb-1" />
-      <div className="bg-orb bg-orb-2" />
-      <div className="bg-orb bg-orb-3" />
-    </div>
-  );
-}
 
 /* ---------------- account approval gate ---------------- */
 
@@ -126,12 +116,19 @@ function ViewSwitch() {
           <LoginView />
         ) : path === "original" ? (
           <AdminView />
+        ) : path === "services" ? (
+          <ServicesView />
+        ) : path === "mass" ? (
+          <MassOrderView />
+        ) : path === "refunds" ? (
+          <RefundsView />
+        ) : path === "support" ? (
+          <SupportView />
         ) : (
           <>
             <Hero />
             <ShopSection />
             <Features />
-            <HowItWorks />
           </>
         )}
       </motion.main>
@@ -149,7 +146,6 @@ function AppRoot() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Backdrop />
       {mounted ? (
         <>
           <Navbar />

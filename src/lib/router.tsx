@@ -24,6 +24,10 @@ const KNOWN_PATHS = [
   "account",
   "login",
   "shop",
+  "services",
+  "mass",
+  "refunds",
+  "support",
 ];
 
 function parseHash(hash: string): RouteState {

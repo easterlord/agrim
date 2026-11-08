@@ -43,7 +43,7 @@ export function useThemeEffect() {
       root.classList.toggle("dark", theme === "dark");
       root.dataset.theme = theme;
       const meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute("content", theme === "dark" ? "#05070f" : "#f2f5fc");
+      if (meta) meta.setAttribute("content", theme === "dark" ? "#0a0b0f" : "#f4f5f7");
     } catch {
       /* ignore */
     }
@@ -61,9 +61,22 @@ export interface OrderDraft {
   link?: string;
 }
 
+/** one parsed line of the mass-order textarea */
+export interface MassLine {
+  platformId: string;
+  typeId: string;
+  serviceName: string;
+  link: string;
+  quantity: number;
+  priceUSD: number;
+}
+
 interface DraftState extends OrderDraft {
   setDraft: (d: Partial<OrderDraft>) => void;
   clearDraft: () => void;
+  /** mass-order lines staged for checkout (multi-item order) */
+  mass: MassLine[];
+  setMass: (lines: MassLine[]) => void;
   /** built items ready for checkout (1 item) */
   buildItems: () => Omit<OrderItem, "priceUSD" | "priceNPR">[];
 }
@@ -77,9 +90,11 @@ export const useDraft = create<DraftState>()(
       packageId: null,
       playerId: "",
       link: "",
+      mass: [],
       setDraft: (d) => set(d),
+      setMass: (mass) => set({ mass }),
       clearDraft: () =>
-        set({ platformId: null, typeId: null, quantity: null, packageId: null, playerId: "", link: "" }),
+        set({ platformId: null, typeId: null, quantity: null, packageId: null, playerId: "", link: "", mass: [] }),
       buildItems: () => {
         const { platformId, typeId, quantity, packageId, playerId, link } = get();
         if (!platformId || !typeId) return [];
@@ -97,7 +112,19 @@ export const useDraft = create<DraftState>()(
         ];
       },
     }),
-    { name: "ezfame:draft", version: 1 },
+    {
+      name: "ezfame:draft",
+      version: 1,
+      partialize: (s) => ({
+        platformId: s.platformId,
+        typeId: s.typeId,
+        quantity: s.quantity,
+        packageId: s.packageId,
+        playerId: s.playerId,
+        link: s.link,
+        mass: s.mass,
+      }),
+    },
   ),
 );
 

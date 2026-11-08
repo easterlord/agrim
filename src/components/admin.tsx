@@ -39,7 +39,7 @@ import {
   Wallet,
   X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PlatformIcon } from "@/components/icons";
 import {
   Field,
@@ -195,9 +195,32 @@ function SaveBtn({ onClick, busy }: { onClick: () => void; busy?: boolean }) {
 
 /* ============================== DASHBOARD ============================== */
 
+/** live count of open refund requests (csmm/refunds via onValue) */
+function useRefundCount(): number {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    const unsub = subscribe<Record<string, { status?: string }>>("csmm/refunds", (v) => {
+      if (!v || typeof v !== "object") {
+        setN(0);
+        return;
+      }
+      setN(Object.values(v).filter((r) => r && r.status === "requested").length);
+    });
+    return () => {
+      try {
+        unsub();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, []);
+  return n;
+}
+
 function Dashboard({ orders }: { orders: Order[] }) {
   const { t } = useI18n();
   const rate = useSettings().settings.exchangeRate;
+  const pendingRefunds = useRefundCount();
 
   const stats = useMemo(() => {
     const valid = orders.filter((o) => o.status !== "rejected" && o.status !== "cancelled");
@@ -217,11 +240,12 @@ function Dashboard({ orders }: { orders: Order[] }) {
     { label: t("orders.completed"), value: String(stats.completed), icon: <ShieldCheck size={16} />, tint: "var(--ok)" },
     { label: t("admin.revenue"), value: fmtUSD(stats.revUSD), icon: <Coins size={16} />, tint: "var(--acc-2)" },
     { label: "Revenue (NPR)", value: fmtNPR(stats.revNPR), icon: <BadgeDollarSign size={16} />, tint: "var(--acc-3)" },
+    { label: t("side.refunds"), value: String(pendingRefunds), icon: <RotateCcw size={16} />, tint: "#ef4444" },
   ];
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {cards.map((c, i) => (
           <motion.div key={c.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
             <GlassCard className="p-4" hover>
@@ -891,22 +915,61 @@ function PaymentsAdmin() {
   const { t } = useI18n();
   const { settings } = useSettings();
   const { push } = useToasts();
-  const [rate, setRate] = useState(String(settings.exchangeRate));
-  const [crypto, setCrypto] = useState(settings.payments.crypto);
-  const [esewa, setEsewa] = useState(settings.payments.esewa);
-  const [khalti, setKhalti] = useState(settings.payments.khalti);
-  const [bank, setBank] = useState(settings.payments.bank);
+
+  /* Draft model: the live DB snapshot (via onValue) is the base; the
+     `edits` overlay only exists while the admin has unsaved changes.
+     Remote updates therefore ALWAYS flow through until an edit is
+     made — the toggle can never desync from the database. */
+  interface PayEdits {
+    rate?: string;
+    crypto?: Settings["payments"]["crypto"];
+    esewa?: LocalPaymentChannel;
+    khalti?: LocalPaymentChannel;
+    bank?: LocalPaymentChannel;
+  }
+  const [edits, setEdits] = useState<PayEdits>({});
+  const [toggling, setToggling] = useState(false);
+
+  const rate = edits.rate ?? String(settings.exchangeRate);
+  const crypto = edits.crypto ?? settings.payments.crypto;
+  const esewa = edits.esewa ?? settings.payments.esewa;
+  const khalti = edits.khalti ?? settings.payments.khalti;
+  const bank = edits.bank ?? settings.payments.bank;
+
+  const patch = (p: PayEdits) => setEdits((prev) => ({ ...prev, ...p }));
+
+  /* LIVE crypto toggle — bound to the DB via onValue. Writes land in
+     Firebase immediately; the displayed state comes from the subscription,
+     so every admin session (and the user frontend) stays in sync. */
+  const dbCryptoEnabled = settings.payments.crypto.enabled;
+  const toggleCrypto = async (v: boolean) => {
+    if (toggling || v === dbCryptoEnabled) return;
+    setToggling(true);
+    const ok = await saveSettingsPatch({
+      payments: { ...settings.payments, crypto: { ...settings.payments.crypto, enabled: v } },
+    });
+    setToggling(false);
+    setEdits((prev) => ({ ...prev, crypto: undefined }));
+    push(
+      ok ? "success" : "info",
+      t("admin.cryptoVisibility"),
+      ok ? `${v ? "VISIBLE" : "HIDDEN"} — synced live` : "queued offline",
+    );
+    if (ok) log("payments.crypto", `Crypto payments ${v ? "VISIBLE" : "HIDDEN"} on user frontend`);
+  };
 
   const save = async () => {
+    const nextRate = Math.max(1, Number(rate) || settings.exchangeRate);
     const ok = await saveSettingsPatch({
-      exchangeRate: Math.max(1, Number(rate) || settings.exchangeRate),
+      exchangeRate: nextRate,
       payments: { crypto, esewa, khalti, bank },
     });
+    setEdits({});
     push(ok ? "success" : "info", t("admin.saved"), ok ? "✓ synced" : "queued offline");
     if (ok) {
       log(
         "payments.update",
-        `Payments saved — rate ${Math.max(1, Number(rate) || settings.exchangeRate)} · crypto ${crypto.enabled ? "VISIBLE" : "HIDDEN"} · eSewa ${esewa.enabled ? "on" : "off"} · Khalti ${khalti.enabled ? "on" : "off"} · Bank ${bank.enabled ? "on" : "off"}`,
+        `Payments saved — rate ${nextRate} · crypto ${crypto.enabled ? "VISIBLE" : "HIDDEN"} · eSewa ${esewa.enabled ? "on" : "off"} · Khalti ${khalti.enabled ? "on" : "off"} · Bank ${bank.enabled ? "on" : "off"}`,
       );
     }
   };
@@ -915,7 +978,13 @@ function PaymentsAdmin() {
     <div className="space-y-4">
       <GlassCard className="flex flex-wrap items-end justify-between gap-4 p-5">
         <Field label={t("admin.rate")} className="w-56">
-          <TextInput type="number" step="0.01" value={rate} onChange={(e) => setRate(e.target.value)} className="font-mono" />
+          <TextInput
+            type="number"
+            step="0.01"
+            value={rate}
+            onChange={(e) => patch({ rate: e.target.value })}
+            className="font-mono"
+          />
         </Field>
         <SaveBtn onClick={() => void save()} />
       </GlassCard>
@@ -926,12 +995,17 @@ function PaymentsAdmin() {
             <h4 className="flex items-center gap-2 text-sm font-bold">
               <Coins size={14} className="text-acc-2" />
               {t("admin.cryptoVisibility")}
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/10 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-500">
+                LIVE
+              </span>
             </h4>
             <p className="mt-0.5 text-[11px] text-muted-foreground">{t("admin.cryptoVisibilityHint")}</p>
           </div>
           <div className="flex items-center gap-2">
-            <Toggle checked={crypto.enabled} onChange={(v) => setCrypto({ ...crypto, enabled: v })} />
-            <span className="text-[11px] font-semibold text-muted-foreground">{crypto.enabled ? t("admin.enabled") : t("admin.disabled")}</span>
+            <Toggle checked={dbCryptoEnabled} onChange={(v) => void toggleCrypto(v)} disabled={toggling} />
+            <span className="text-[11px] font-semibold text-muted-foreground">
+              {toggling ? "…" : dbCryptoEnabled ? t("admin.enabled") : t("admin.disabled")}
+            </span>
           </div>
         </div>
         <div className="flex items-center justify-between">
@@ -947,7 +1021,7 @@ function PaymentsAdmin() {
               onChange={(e) => {
                 const ws = [...crypto.wallets];
                 ws[i] = { ...w, network: e.target.value };
-                setCrypto({ ...crypto, wallets: ws });
+                patch({ crypto: { ...crypto, wallets: ws } });
               }}
               placeholder="USDT (TRC-20)"
             />
@@ -956,13 +1030,13 @@ function PaymentsAdmin() {
               onChange={(e) => {
                 const ws = [...crypto.wallets];
                 ws[i] = { ...w, address: e.target.value };
-                setCrypto({ ...crypto, wallets: ws });
+                patch({ crypto: { ...crypto, wallets: ws } });
               }}
               className="font-mono text-xs"
               placeholder="wallet address"
             />
             <button
-              onClick={() => setCrypto({ ...crypto, wallets: crypto.wallets.filter((x) => x.id !== w.id) })}
+              onClick={() => patch({ crypto: { ...crypto, wallets: crypto.wallets.filter((x) => x.id !== w.id) } })}
               aria-label={t("common.delete")}
               className="flex h-8 w-8 items-center justify-center rounded-lg text-red-400 hover:bg-red-500/10"
             >
@@ -974,7 +1048,9 @@ function PaymentsAdmin() {
           <AccentButton
             size="sm"
             variant="ghost"
-            onClick={() => setCrypto({ ...crypto, wallets: [...crypto.wallets, { id: genId("w"), network: "", address: "" }] })}
+            onClick={() =>
+              patch({ crypto: { ...crypto, wallets: [...crypto.wallets, { id: genId("w"), network: "", address: "" }] } })
+            }
           >
             <Plus size={13} />
             {t("admin.addWallet")}
@@ -982,14 +1058,17 @@ function PaymentsAdmin() {
           <QRImage value={crypto.wallets[0]?.address ?? ""} size={90} caption="preview" />
         </div>
         <Field label="Crypto instructions">
-          <TextArea value={crypto.instructions ?? ""} onChange={(e) => setCrypto({ ...crypto, instructions: e.target.value })} />
+          <TextArea
+            value={crypto.instructions ?? ""}
+            onChange={(e) => patch({ crypto: { ...crypto, instructions: e.target.value } })}
+          />
         </Field>
       </GlassCard>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <ChannelEditor name="eSewa" ch={esewa} onChange={setEsewa} />
-        <ChannelEditor name="Khalti" ch={khalti} onChange={setKhalti} />
-        <ChannelEditor name="Bank Transfer" ch={bank} onChange={setBank} />
+        <ChannelEditor name="eSewa" ch={esewa} onChange={(c) => patch({ esewa: c })} />
+        <ChannelEditor name="Khalti" ch={khalti} onChange={(c) => patch({ khalti: c })} />
+        <ChannelEditor name="Bank Transfer" ch={bank} onChange={(c) => patch({ bank: c })} />
       </div>
 
       <div className="sticky bottom-4 z-10 flex justify-end">

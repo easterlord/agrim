@@ -49,7 +49,7 @@ import {
   fmtUSD,
   genOrderId,
 } from "@/lib/utils";
-import type { Order, OrderItem, PaymentMethod } from "@/lib/types";
+import type { Order, OrderItem, PaymentMethod, Platform, ServiceType } from "@/lib/types";
 
 function CopyRow({
   label,
@@ -112,7 +112,35 @@ export function CheckoutView() {
 
   const rate = settings.exchangeRate;
 
-  const built = useMemo(() => {
+  /* ---------- order items: single draft OR staged mass-order lines ---------- */
+  const built = useMemo<{
+    items: OrderItem[];
+    primary: { platform: Platform; service: ServiceType } | null;
+  } | null>(() => {
+    /* mass order staged from #/mass */
+    if (draft.mass?.length) {
+      const items: OrderItem[] = draft.mass.map((m) => {
+        const plat = platforms.find((p) => p.id === m.platformId);
+        const svc = plat?.services.find((s) => s.id === m.typeId);
+        const usd = m.priceUSD;
+        return {
+          platformId: m.platformId,
+          platformName: plat?.name ?? m.platformId,
+          serviceId: m.typeId,
+          serviceName: svc?.name ?? m.serviceName ?? m.typeId,
+          quantity: m.quantity,
+          unit: plat?.unit,
+          link: m.link,
+          priceUSD: usd,
+          priceNPR: convertUSD(usd, rate),
+        };
+      });
+      const first = platforms.find((p) => p.id === items[0]?.platformId) ?? null;
+      const firstSvc = first?.services.find((s) => s.id === items[0]?.serviceId) ?? null;
+      return { items, primary: first && firstSvc ? { platform: first, service: firstSvc } : null };
+    }
+
+    /* single configured order */
     const platform = platforms.find((p) => p.id === draft.platformId);
     const service = platform?.services.find((s) => s.id === draft.typeId);
     if (!platform || !service) return null;
@@ -130,7 +158,7 @@ export function CheckoutView() {
       priceUSD: usd,
       priceNPR: convertUSD(usd, rate),
     };
-    return { platform, service, pk, item };
+    return { items: [item], primary: { platform, service } };
   }, [platforms, draft, rate]);
 
   const methods: Array<{ id: PaymentMethod; label: string; enabled: boolean }> = [
@@ -199,9 +227,10 @@ export function CheckoutView() {
     );
   }
 
-  const { platform, service, pk, item } = built;
-  const totalUSD = item.priceUSD;
-  const totalNPR = item.priceNPR;
+  const { items, primary } = built;
+  const totalUSD = Math.round(items.reduce((s, i) => s + i.priceUSD, 0) * 100) / 100;
+  const totalNPR = Math.round(items.reduce((s, i) => s + i.priceNPR, 0) * 100) / 100;
+  const platform = primary?.platform ?? null;
   const wallet = settings.payments.crypto.wallets[walletIdx] ?? settings.payments.crypto.wallets[0];
 
   /* ---------- strict auth: approved accounts only ---------- */
@@ -262,7 +291,7 @@ export function CheckoutView() {
         userEmail: user?.email,
         guest: !user,
         contact: contact.trim() || undefined,
-        items: [item],
+        items,
         totalUSD,
         totalNPR,
         currencyUsed: activeMethod === "crypto" ? "USD" : "NPR",
@@ -280,6 +309,7 @@ export function CheckoutView() {
       const synced = await createOrder(order);
       setDone(order);
       draft.clearDraft();
+      draft.setMass([]);
       push(
         "success",
         t("checkout.success"),
@@ -314,30 +344,40 @@ export function CheckoutView() {
               {t("checkout.summary")}
             </h3>
 
-            <div className="flex items-start gap-3">
-              <span className="glass flex h-12 w-12 shrink-0 items-center justify-center rounded-xl" style={{ color: platform.color }}>
-                <PlatformIcon id={platform.id} size={24} />
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold">
-                  <Tx text={service.name} />
-                </p>
-                <p className="text-xs text-muted-foreground">{platform.name}</p>
-                <p className="mt-1 font-mono text-xs text-acc-1">
-                  {pk ? pk.label : `${(item.quantity ?? 0).toLocaleString()} ${platform.unit}`}
-                </p>
-              </div>
+            {/* items — single or mass-order list */}
+            <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+              {items.map((it, idx) => {
+                const plat = items.length === 1 && platform ? platform : null;
+                const color = plat?.color ?? "#4d7cff";
+                return (
+                  <div key={`${it.serviceId}-${idx}`} className="flex items-start gap-3 rounded-xl border border-border/70 px-3 py-2.5">
+                    <span
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border"
+                      style={{ color }}
+                    >
+                      <PlatformIcon id={plat?.id ?? it.platformId} size={19} />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-bold">{it.serviceName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {it.platformName}
+                        {it.packageName ? ` · ${it.packageName}` : it.quantity ? ` · ${(it.quantity ?? 0).toLocaleString()}` : ""}
+                      </p>
+                      {it.link ? (
+                        <p className="mt-0.5 truncate font-mono text-[10px] text-muted-foreground">{it.link}</p>
+                      ) : null}
+                    </div>
+                    <span className="shrink-0 font-mono text-xs font-bold text-acc-1">{fmtUSD(it.priceUSD)}</span>
+                  </div>
+                );
+              })}
             </div>
-
-            {item.link ? (
-              <p className="mt-3 truncate rounded-lg bg-muted/50 px-3 py-2 font-mono text-[11px] text-muted-foreground">
-                {item.link}
-              </p>
-            ) : null}
 
             <div className="mt-4 space-y-1.5 border-t border-border/60 pt-3 text-sm">
               <div className="flex justify-between text-muted-foreground">
-                <span>1 × service</span>
+                <span>
+                  {items.length} × {items.length > 1 ? t("checkout.summary").toLowerCase() : "service"}
+                </span>
                 <span className="font-mono">{fmtUSD(totalUSD)}</span>
               </div>
               <div className="flex justify-between text-muted-foreground">
