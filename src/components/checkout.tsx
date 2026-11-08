@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzFameNp — checkout: payment methods, QR rendering,
+ * EzFame — checkout: payment methods, QR rendering,
  * transaction submission & order creation.
  * ============================================================ */
 
@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   Copy,
   Image as ImageIcon,
+  LogIn,
+  ShieldAlert,
+  UserPlus,
   Wallet,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -103,6 +106,7 @@ export function CheckoutView() {
   const [receiptUrl, setReceiptUrl] = useState("");
   const [receiptPreview, setReceiptPreview] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [ack, setAck] = useState(false);
   const [done, setDone] = useState<Order | null>(null);
   const [receiptOpen, setReceiptOpen] = useState(false);
 
@@ -200,9 +204,48 @@ export function CheckoutView() {
   const totalNPR = item.priceNPR;
   const wallet = settings.payments.crypto.wallets[walletIdx] ?? settings.payments.crypto.wallets[0];
 
+  /* ---------- strict auth: approved accounts only ---------- */
+  if (!user) {
+    return (
+      <section className="mx-auto max-w-2xl px-4 pb-20 pt-28 sm:pt-32">
+        <GlassCard strong className="p-8 text-center">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl"
+            style={{ background: "color-mix(in oklab, var(--acc-1) 14%, transparent)" }}
+          >
+            <ShieldAlert size={26} className="text-acc-1" />
+          </motion.div>
+          <h1 className="text-xl font-extrabold">{t("checkout.signInToBuy")}</h1>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+            {t("checkout.signInToBuyMsg")}
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <AccentButton onClick={() => navigate("/login")}>
+              <LogIn size={15} />
+              {t("auth.signIn")}
+            </AccentButton>
+            <AccentButton variant="ghost" onClick={() => navigate("/login")}>
+              <UserPlus size={15} />
+              {t("auth.signUp")}
+            </AccentButton>
+          </div>
+          <p className="mt-5 text-[11px] text-muted-foreground">
+            {t("checkout.total")}: {currency === "NPR" ? fmtNPR(totalNPR) : fmtUSD(totalUSD)} — {t("checkout.back")}
+          </p>
+        </GlassCard>
+      </section>
+    );
+  }
+
   const payAmount = activeMethod === "crypto" ? fmtUSD(totalUSD) : fmtNPR(totalNPR);
 
   const submit = async () => {
+    if (!ack) {
+      push("error", t("checkout.ackRequired"));
+      return;
+    }
     if (!txId.trim() && !receiptUrl.trim() && !receiptPreview) {
       push("error", t("checkout.needTx"));
       return;
@@ -231,6 +274,7 @@ export function CheckoutView() {
           submittedAt: now,
         },
         status: "pending",
+        ackDrops: true,
       };
       addLocalOrder(order);
       const synced = await createOrder(order);
@@ -464,6 +508,22 @@ export function CheckoutView() {
               ) : null}
             </div>
 
+            <div className="mt-5 rounded-xl border border-red-500/30 bg-red-500/[0.06] p-4">
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={ack}
+                  onChange={(e) => setAck(e.target.checked)}
+                  className="mt-0.5 h-4.5 w-4.5 shrink-0 cursor-pointer accent-red-500"
+                  style={{ width: 18, height: 18 }}
+                />
+                <span className="text-xs font-semibold leading-relaxed text-foreground/90">
+                  {t("checkout.ackDrops")}
+                  <span className="ml-1 font-bold text-red-400">*</span>
+                </span>
+              </label>
+            </div>
+
             <div className="mt-5 flex items-center justify-between gap-3">
               <button
                 onClick={() => navigate("/")}
@@ -472,16 +532,18 @@ export function CheckoutView() {
                 <ArrowLeft size={13} />
                 {t("checkout.back")}
               </button>
-              <AccentButton size="lg" onClick={submit} disabled={submitting}>
-                {submitting ? (
-                  <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }} className="flex">
-                    <CheckCircle2 size={16} />
-                  </motion.span>
-                ) : (
-                  <BadgeCheck size={16} />
-                )}
-                {submitting ? t("checkout.submitting") : t("checkout.submit")}
-              </AccentButton>
+              <motion.div whileHover={ack ? { scale: 1.02 } : undefined} whileTap={ack ? { scale: 0.98 } : undefined}>
+                <AccentButton size="lg" onClick={submit} disabled={submitting || !ack}>
+                  {submitting ? (
+                    <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }} className="flex">
+                      <CheckCircle2 size={16} />
+                    </motion.span>
+                  ) : (
+                    <BadgeCheck size={16} />
+                  )}
+                  {submitting ? t("checkout.submitting") : t("checkout.submit")}
+                </AccentButton>
+              </motion.div>
             </div>
           </GlassCard>
         </div>

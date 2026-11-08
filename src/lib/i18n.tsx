@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzFameNp — i18n engine.
+ * EzFame — i18n engine.
  *  • Native localized strings for UI chrome (en / ne / hi).
  *  • Dynamic content (service names, admin-entered text) is
  *    auto-translated on demand through Google Translate's free
@@ -41,7 +41,7 @@ export const dict = {
       hi: "नेपाल का #1 SMM और गेम टॉप-अप स्टोर",
     },
     title1: { en: "Grow Your Social,", ne: "सोशल बढाउनुहोस्,", hi: "अपना सोशल बढ़ाएँ," },
-    title2: { en: "Top-Up Your Game", ne: "गेम टप-अप गर्नुहोस्", hi: "गेम टॉप-अप करें" },
+    title2: { en: "Top-Up Your Game.", ne: "गेम टप-अप गर्नुहोस्।", hi: "गेम टॉप-अप करें।" },
     sub: {
       en: "Instant followers, likes, views & in-game currency at Nepal's lowest prices. Pay with eSewa, Khalti, bank transfer or crypto.",
       ne: "नेपालकै सस्तो मूल्यमा तत्काल फलोअर्स, लाइक, भ्यूज र इन-गेम करेन्सी। eSewa, Khalti, बैंक वा क्रिप्टोबाट भुक्तानी गर्नुहोस्।",
@@ -78,6 +78,11 @@ export const dict = {
     social: { en: "Social Media", ne: "सोशल मिडिया", hi: "सोशल मीडिया" },
     games: { en: "Game Top-Up", ne: "गेम टप-अप", hi: "गेम टॉप-अप" },
     selectPrompt: { en: "Select a platform to begin", ne: "सुरु गर्न प्लेटफर्म छान्नुहोस्", hi: "शुरू करने के लिए प्लेटफ़ॉर्म चुनें" },
+    dropNote: {
+      en: "Note: drops in social media counts can occur over time — refill/warranty terms apply per service.",
+      ne: "नोट: सामाजिक सञ्जालका संख्याहरूमा समयसँगै गिरावट आउन सक्छ — रिफिल/वारेन्टी सर्तहरू सेवा अनुसार लागू हुन्छन्।",
+      hi: "नोट: सोशल मीडिया काउंट समय के साथ गिर सकते हैं — रीफिल/वारंटी शर्तें सेवा अनुसार लागू होती हैं।",
+    },
   },
   checkout: {
     title: { en: "Checkout", ne: "चेकआउट", hi: "चेकआउट" },
@@ -119,6 +124,26 @@ export const dict = {
     wallet: { en: "Wallet", ne: "वालेट", hi: "वॉलेट" },
     address: { en: "Address", ne: "ठेगाना", hi: "एड्रेस" },
     back: { en: "Back to shop", ne: "पसलमा फर्क", hi: "दुकान पर वापस" },
+    ackDrops: {
+      en: "I acknowledge that drops can occur and EzFame is not responsible for social media platform updates.",
+      ne: "म न्यीकार्छु कि गिरावट आउन सक्छ र सामाजिक मिडिया प्लेटफर्म अपडेटका लागि EzFame जिम्मेवार छैन।",
+      hi: "मैं स्वीकार करता/करती हूँ कि गिरावट हो सकती है और सोशल मीडिया प्लेटफ़ॉर्म अपडेट के लिए EzFame ज़िम्मेदार नहीं है।",
+    },
+    ackRequired: {
+      en: "Please tick the acknowledgement checkbox before submitting.",
+      ne: "पेश गर्नु अघि कृपया स्वीकृति बाकस टिक गर्नुहोस्।",
+      hi: "सबमिट करने से पहले कृपया स्वीकृति बॉक्स पर टिक करें।",
+    },
+    signInToBuy: {
+      en: "Sign in to place an order",
+      ne: "अर्डर गर्न साइन इन गर्नुहोस्",
+      hi: "ऑर्डर देने के लिए साइन इन करें",
+    },
+    signInToBuyMsg: {
+      en: "Create an account or sign in to complete your purchase — guest checkout is currently disabled.",
+      ne: "खरिद पूरा गर्न खाता बनाउनुहोस् वा साइन इन गर्नुहोस् — गेस्ट चेकआउट अहिले बन्द छ।",
+      hi: "अपनी खरीद पूरी करने के लिए खाता बनाएँ या साइन इन करें — गेस्ट चेकआउट अभी बंद है।",
+    },
   },
   orders: {
     title: { en: "My Orders", ne: "मेरा अर्डरहरू", hi: "मेरे ऑर्डर" },
@@ -149,8 +174,22 @@ export const dict = {
     clearCache: { en: "Clear offline cache", ne: "अफलाइन क्यास खाली", hi: "ऑफ़लाइन कैश साफ़ करें" },
     admin: { en: "Admin Panel", ne: "एडमिन प्यानल", hi: "एडमिन पैनल" },
   },
+  gate: {
+    pendingTitle: { en: "Account pending approval", ne: "खाता स्वीकृतिको प्रतीक्षामा", hi: "खाता अनुमोदन लंबित है" },
+    pendingMsg: {
+      en: "Your account was created successfully and is waiting for admin approval. You'll get full access as soon as an administrator approves it — usually within a few hours.",
+      ne: "तपाईंको खाता सफलतापूर्वक बन्यो र एडमिन स्वीकृतिको प्रतीक्षामा छ। एडमिनले स्वीकृत गरेपछि पूर्ण पहुँच पाउनुहुनेछ — सामान्यतया केही घण्टाभित्र।",
+      hi: "आपका खाता सफलतापूर्वक बन गया है और एडमिन अनुमोदन की प्रतीक्षा में है। एडमिन द्वारा अनुमोदन के तुरंत बाद पूर्ण एक्सेस मिल जाएगा — आमतौर पर कुछ घंटों में।",
+    },
+    suspendedTitle: { en: "Account suspended", ne: "खाता निलम्बित", hi: "खाता निलंबित" },
+    suspendedMsg: {
+      en: "This account has been suspended by an administrator. If you believe this is a mistake, contact support.",
+      ne: "यो खाता एडमिनद्वारा निलम्बित गरिएको छ। गल्ती भएको विश्वास गर्नुहुन्छ भने सहयोगमा सम्पर्क गर्नुहोस्।",
+      hi: "यह खाता एडमिन द्वारा निलंबित किया गया है। यदि आपको लगता है कि यह गलती है, तो सहायता से संपर्क करें।",
+    },
+  },
   auth: {
-    welcome: { en: "Welcome to EzFameNp", ne: "EzFameNp मा स्वागत छ", hi: "EzFameNp में स्वागत है" },
+    welcome: { en: "Welcome to EzFame", ne: "EzFame मा स्वागत छ", hi: "EzFame में स्वागत है" },
     sub: { en: "Sign in to track orders & unlock faster support.", ne: "अर्डर ट्र्याक गर्न र छिटो सहयोग पाउन साइन इन गर्नुहोस्।", hi: "ऑर्डर ट्रैक करने और तेज़ सहायता के लिए साइन इन करें।" },
     signIn: { en: "Sign In", ne: "साइन इन", hi: "साइन इन" },
     signUp: { en: "Create Account", ne: "खाता बनाउनुहोस्", hi: "खाता बनाएँ" },
@@ -226,6 +265,72 @@ export const dict = {
     active: { en: "Active", ne: "सक्रिय", hi: "सक्रिय" },
     priceUsd: { en: "Price USD", ne: "मूल्य USD", hi: "कीमत USD" },
     pricePerK: { en: "Price per 1000 (USD)", ne: "प्रति १००० मूल्य (USD)", hi: "प्रति 1000 कीमत (USD)" },
+    logs: { en: "System Logs", ne: "सिस्टम लग", hi: "सिस्टम लॉग्स" },
+    logsEmpty: { en: "No admin activity recorded yet.", ne: "अझै कुनै एडमिन गतिविधि छैन।", hi: "अभी कोई एडमिन गतिविधि दर्ज नहीं है।" },
+    clearLogs: { en: "Clear logs", ne: "लग खाली", hi: "लॉग साफ़ करें" },
+    viewReceipt: { en: "View receipt", ne: "रसिद हेर्नुहोस्", hi: "रसीद देखें" },
+    cryptoVisibility: { en: "Show Crypto on checkout", ne: "चेकआउटमा क्रिप्टो देखाउनुहोस्", hi: "चेकआउट पर क्रिप्टो दिखाएँ" },
+    cryptoVisibilityHint: {
+      en: "When off, all crypto payment options stay hidden from customers.",
+      ne: "अफ मा, सबै क्रिप्टो भुक्तानी विकल्पहरू ग्राहकबाट लुकाइएका हुन्छन्।",
+      hi: "बंद होने पर सभी क्रिप्टो भुगतान विकल्प ग्राहकों से छिपे रहते हैं।",
+    },
+    users: { en: "User Management", ne: "प्रयोगकर्ता व्यवस्थापन", hi: "उपयोगकर्ता प्रबंधन" },
+    usersHint: {
+      en: "Approve new sign-ups, suspend or restore access, and manage roles. Changes apply in real time.",
+      ne: "नयाँ दर्ता स्वीकृत गर्नुहोस्, पहुँच निलम्बित वा पुनर्स्थापित गर्नुहोस्, र भूमिकाहरू व्यवस्थापन गर्नुहोस्। परिवर्तनहरू तत्काल लागू हुन्छन्।",
+      hi: "नई साइन-अप स्वीकृत करें, एक्सेस निलंबित/पुनर्स्थापित करें, और भूमिकाएँ प्रबंधित करें। बदलाव तुरंत लागू होते हैं।",
+    },
+    statusPending: { en: "Pending", ne: "पेन्डिङ", hi: "लंबित" },
+    statusActive: { en: "Active", ne: "सक्रिय", hi: "सक्रिय" },
+    statusSuspended: { en: "Suspended", ne: "निलम्बित", hi: "निलंबित" },
+    suspend: { en: "Suspend", ne: "निलम्बित", hi: "निलंबित" },
+    unban: { en: "Restore", ne: "पुनर्स्थापित", hi: "पुनर्स्थापित" },
+    deleteUser: { en: "Delete user", ne: "प्रयोगकर्ता मेट्नुहोस्", hi: "उपयोगकर्ता हटाएँ" },
+    confirmDeleteUser: {
+      en: "Permanently delete this user? They will be signed out everywhere.",
+      ne: "यो प्रयोगकर्ता स्थायी रूपमा मेट्ने हो? उनी सबै ठाउँबाट साइन आउट हुनेछन्।",
+      hi: "इस उपयोगकर्ता को स्थायी रूप से हटाएँ? वे हर जगह से साइन आउट हो जाएँगे।",
+    },
+    lastLogin: { en: "Last login", ne: "अन्तिम लगइन", hi: "अंतिम लॉगिन" },
+    pendingCount: { en: "pending approval", ne: "स्वीकृति प्रतीक्षामा", hi: "अनुमोदन लंबित" },
+    masterSession: { en: "master session", ne: "मास्टर सेसन", hi: "मास्टर सेशन" },
+    roleAdmin: { en: "role: admin", ne: "भूमिका: एडमिन", hi: "भूमिका: एडमिन" },
+    accessUnlocked: { en: "access unlocked", ne: "पहुँच खुल्यो", hi: "एक्सेस अनलॉक" },
+    credentialsHint: {
+      en: "Master credentials on fresh installs: agrim / ramesh — change them here.",
+      ne: "नयाँ इन्स्टलमा मास्टर प्रमाणहरू: agrim / ramesh — यहाँ परिवर्तन गर्नुहोस्।",
+      hi: "नए इंस्टॉल पर मास्टर क्रेडेंशियल: agrim / ramesh — यहाँ बदलें।",
+    },
+  },
+  features: {
+    f1t: { en: "Lightning Delivery", ne: "बिजुली गतिको डेलिभरी", hi: "बिजली जैसी डिलीवरी" },
+    f1d: {
+      en: "Orders start within 0–1 hour and game top-ups land in 5–30 minutes.",
+      ne: "अर्डर ०–१ घण्टाभित्र सुरु हुन्छन् र गेम टप-अप ५–३० मिनेटमा आइपुग्छन्।",
+      hi: "ऑर्डर 0–1 घंटे में शुरू होते हैं और गेम टॉप-अप 5–30 मिनट में पहुँच जाते हैं।",
+    },
+    f2t: { en: "100% Safe", ne: "१००% सुरक्षित", hi: "100% सुरक्षित" },
+    f2d: {
+      en: "No passwords needed — only public links & game UIDs. Privacy-first delivery.",
+      ne: "पासवर्ड आवश्यक छैन — सार्वजनिक लिंक र गेम UID मात्र। गोपनीयता-पहिलो डेलिभरी।",
+      hi: "पासवर्ड की ज़रूरत नहीं — केवल सार्वजनिक लिंक और गेम UID। प्राइवेसी-फर्स्ट डिलीवरी।",
+    },
+    f3t: { en: "AI Support 24/7", ne: "AI सहयोग २४/७", hi: "AI सहायता 24/7" },
+    f3d: {
+      en: "AI assistant answers pricing & order questions instantly, around the clock.",
+      ne: "AI सहायकले मूल्य र अर्डरका प्रश्नहरूको तत्काल जवाफ दिन्छ, चौबिसै घण्टा।",
+      hi: "AI सहायक कीमत और ऑर्डर के सवालों का तुरंत जवाब देता है, चौबिसों घंटे।",
+    },
+    f4t: { en: "Best Rates", ne: "उत्कृष्ट दर", hi: "बेस्ट रेट्स" },
+    f4d: {
+      en: "Live USD ⇄ NPR conversion with the lowest prices in Nepal — updated by the store.",
+      ne: "जीवित USD ⇄ NPR रूपान्तरण — नेपालकै सस्तो मूल्य, पसलद्वारा अपडेट।",
+      hi: "लाइव USD ⇄ NPR रूपांतरण — नेपाल की सबसे किफायती कीमतें, स्टोर द्वारा अपडेट।",
+    },
+  },
+  how: {
+    s3t: { en: "Delivered & Tracked", ne: "डेलिभरी र ट्र्याकिङ", hi: "डिलीवरी और ट्रैकिंग" },
   },
   footer: {
     about: {
@@ -286,7 +391,7 @@ export function lookup(lang: Lang, path: string): string {
 
 /* ---------------- Google auto-translate (dynamic content) ---------------- */
 
-const LS_TX = "ezfamenp:txcache";
+const LS_TX = "ezfame:txcache";
 const txMem = new Map<string, string>();
 
 function txCacheGet(key: string): string | null {
@@ -349,7 +454,7 @@ export async function googleTranslate(text: string, target: Lang): Promise<strin
 
 /* ---------------- context ---------------- */
 
-const LS_LANG = "ezfamenp:lang";
+const LS_LANG = "ezfame:lang";
 
 interface I18nContextValue {
   lang: Lang;

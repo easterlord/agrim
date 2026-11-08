@@ -1,18 +1,24 @@
 "use client";
 
 /* ============================================================
- * EzFameNp — hidden admin control center at #/original
+ * EzFame — hidden admin control center at #/original
  * (also reachable via /original or ?p=/original).
- * Protected by username + password (default: ramesh / agrim) or admin role.
+ * Protected by username + password (default: agrim / ramesh) or a verified
+ * admin-role account. Session-scoped — never persisted across restarts.
  * ============================================================ */
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
   BadgeDollarSign,
+  Ban,
   Bot,
+  CheckCircle2,
   Clock,
   Coins,
   Download,
+  Eye,
+  FileText,
+  Hourglass,
   Image as ImageIcon,
   KeyRound,
   Link2,
@@ -21,10 +27,14 @@ import {
   Package,
   Plus,
   RefreshCw,
+  RotateCcw,
   Save,
+  ScrollText,
   ShieldCheck,
   ShoppingBag,
   Trash2,
+  UserCheck,
+  UserX,
   Users,
   Wallet,
   X,
@@ -46,34 +56,46 @@ import {
   Toggle,
 } from "@/components/ui-kit";
 import { useI18n } from "@/lib/i18n";
-import { useAuth, elevateLocalAdmin } from "@/lib/auth";
+import { useAuth, fetchDbProfile } from "@/lib/auth";
 import {
   deleteServiceType,
+  deleteUserProfile,
+  patchUser,
   savePlatform,
   saveSettingsPatch,
   saveUserProfile,
   setOrderStatus,
   useAllOrders,
   useCatalog,
+  useLogs,
   useSettings,
   useUsers,
 } from "@/lib/data";
 import { useToasts } from "@/lib/store";
-import { exportLocalData, resetLocalData, saveFirebaseConfigOverride, getFirebaseConfig } from "@/lib/rtdb";
+import { exportLocalData, resetLocalData, saveFirebaseConfigOverride, getFirebaseConfig, pushLog, subscribe } from "@/lib/rtdb";
 import { DEFAULT_ADMIN_PASS_HASH, DEFAULT_ADMIN_USER_HASH, DEFAULT_CATALOG, DEFAULT_SETTINGS } from "@/lib/defaults";
 import { set as dbSet } from "@/lib/rtdb";
-import { fileToCompressedDataUrl, sha256Hex, cn, fmtDateTime, fmtNPR, fmtUSD, genId } from "@/lib/utils";
-import type { FaqEntry, LocalPaymentChannel, Order, OrderStatus, Platform, QuickAction, ServiceType, Settings } from "@/lib/types";
+import { fileToCompressedDataUrl, sha256Hex, cn, fmtDateTime, timeAgo, fmtNPR, fmtUSD, genId } from "@/lib/utils";
+import type { FaqEntry, LocalPaymentChannel, Order, OrderStatus, Platform, QuickAction, ServiceType, Settings, UserProfile } from "@/lib/types";
 
-const LS_ADMIN_OK = "ezfamenp:adminok";
+const LS_ADMIN_OK = "ezfame:adminok";
 
-type Tab = "dashboard" | "orders" | "services" | "payments" | "chatbot" | "links" | "users" | "settings";
+type Tab = "dashboard" | "orders" | "services" | "payments" | "chatbot" | "links" | "users" | "logs" | "settings";
+
+/* ---------------- admin action logging ---------------- */
+
+/** actor for log entries — set on every successful gate/role unlock */
+let logActor = "master";
+function log(action: string, detail: string) {
+  void pushLog(action, detail, logActor);
+}
 
 /* ============================== GATE ============================== */
 
-function Gate({ onPass }: { onPass: () => void }) {
+function Gate({ onPass }: { onPass: (actor: string) => void }) {
   const { t } = useI18n();
   const { settings } = useSettings();
+  const { user } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [wrong, setWrong] = useState(false);
@@ -82,22 +104,27 @@ function Gate({ onPass }: { onPass: () => void }) {
   const submit = async () => {
     if (!username.trim() || !password) return;
     setBusy(true);
+    const name = username.trim().toLowerCase();
     const [userHash, passHash] = await Promise.all([
-      sha256Hex(username.trim().toLowerCase()),
+      sha256Hex(name),
       sha256Hex(password),
     ]);
-    const ok =
-      userHash === (settings.adminUserHash || DEFAULT_ADMIN_USER_HASH) &&
-      passHash === (settings.adminPassHash || DEFAULT_ADMIN_PASS_HASH);
+    // master credentials are hardcoded AND still valid when the admin
+    // rotated them via Settings (settings hash takes precedence)
+    const userOk = userHash === settings.adminUserHash || userHash === DEFAULT_ADMIN_USER_HASH;
+    const passOk = passHash === settings.adminPassHash || passHash === DEFAULT_ADMIN_PASS_HASH;
     setBusy(false);
-    if (ok) {
+    if (userOk && passOk) {
       try {
-        sessionStorage.setItem(LS_ADMIN_OK, "1");
+        // bind the unlock to the currently signed-in uid — switching
+        // accounts invalidates it (no credential inheritance)
+        sessionStorage.setItem(LS_ADMIN_OK, `master:${user?.uid ?? "anon"}`);
       } catch {
         /* ignore */
       }
-      elevateLocalAdmin();
-      onPass();
+      logActor = name;
+      log("admin.login", `Master admin "${name}" unlocked the control center`);
+      onPass(name);
     } else {
       setWrong(true);
       setTimeout(() => setWrong(false), 2200);
@@ -237,12 +264,20 @@ function OrdersAdmin({ orders }: { orders: Order[] }) {
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
   const [rejectId, setRejectId] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [receiptId, setReceiptId] = useState<string | null>(null);
 
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  const receiptOrder = orders.find((o) => o.id === receiptId) ?? null;
 
   const act = async (id: string, status: OrderStatus, adminNote?: string) => {
     const ok = await setOrderStatus(id, status, adminNote);
     push(ok ? "success" : "info", `${id} → ${status}`, ok ? "✓ synced" : "queued offline");
+    if (ok) log(`order.${status}`, `Order ${id} → ${status}${adminNote ? ` (note: ${adminNote})` : ""}`);
+  };
+
+  const openReceipt = (id: string) => {
+    setReceiptId(id);
+    log("order.receipt_view", `Payment receipt of ${id} opened for inspection`);
   };
 
   return (
@@ -296,12 +331,23 @@ function OrdersAdmin({ orders }: { orders: Order[] }) {
                 </div>
 
                 {o.payment.receiptUrl ? (
-                  <div className="mt-2">
-                    <SafeImage
-                      src={o.payment.receiptUrl}
-                      alt="receipt"
-                      className="h-28 w-28 rounded-lg border border-border bg-white/80 p-1"
-                    />
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      onClick={() => openReceipt(o.id)}
+                      className="group relative h-28 w-28 overflow-hidden rounded-lg border border-border transition-all hover:border-acc-1/60"
+                      aria-label={t("admin.viewReceipt")}
+                      title={t("admin.viewReceipt")}
+                    >
+                      <SafeImage
+                        src={o.payment.receiptUrl}
+                        alt="receipt"
+                        className="h-full w-full bg-white/80 object-cover p-1"
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/55 opacity-0 transition-opacity group-hover:opacity-100">
+                        <Eye size={20} className="text-white" />
+                      </span>
+                    </button>
+                    <span className="text-[11px] font-semibold text-muted-foreground">{t("admin.viewReceipt")}</span>
                   </div>
                 ) : null}
 
@@ -371,6 +417,66 @@ function OrdersAdmin({ orders }: { orders: Order[] }) {
             {t("admin.reject")}
           </AccentButton>
         </div>
+      </Modal>
+
+      {/* payment receipt inspection modal — view BEFORE verifying */}
+      <Modal open={!!receiptOrder} onClose={() => setReceiptId(null)} title={`${t("admin.viewReceipt")} — ${receiptOrder?.id ?? ""}`} wide>
+        {receiptOrder ? (
+          <div className="space-y-4">
+            <div className="max-h-[52vh] overflow-auto rounded-xl border border-border bg-white p-2">
+              <img
+                src={receiptOrder.payment.receiptUrl}
+                alt={`Payment receipt for ${receiptOrder.id}`}
+                className="mx-auto max-w-full"
+              />
+            </div>
+            <div className="grid gap-1.5 text-xs text-muted-foreground">
+              <p>
+                <b className="text-foreground">{receiptOrder.id}</b> · {receiptOrder.userName ?? "Guest"}
+                {receiptOrder.userEmail ? ` · ${receiptOrder.userEmail}` : ""}
+              </p>
+              <p className="font-mono">
+                {receiptOrder.payment.method}
+                {receiptOrder.payment.network ? ` · ${receiptOrder.payment.network}` : ""}
+                {receiptOrder.payment.txId ? ` · Tx: ${receiptOrder.payment.txId}` : ""}
+              </p>
+              <p className="font-mono">
+                {fmtUSD(receiptOrder.totalUSD)} / {fmtNPR(receiptOrder.totalNPR)}
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <AccentButton variant="ghost" size="sm" onClick={() => setReceiptId(null)}>
+                {t("common.close")}
+              </AccentButton>
+              {receiptOrder.status === "pending" ? (
+                <AccentButton
+                  size="sm"
+                  onClick={() => {
+                    void act(receiptOrder.id, "processing");
+                    setReceiptId(null);
+                  }}
+                >
+                  <ShieldCheck size={13} />
+                  {t("admin.verify")}
+                </AccentButton>
+              ) : null}
+              {receiptOrder.status === "pending" ? (
+                <AccentButton
+                  variant="danger"
+                  size="sm"
+                  onClick={() => {
+                    setNote("");
+                    setRejectId(receiptOrder.id);
+                    setReceiptId(null);
+                  }}
+                >
+                  <X size={13} />
+                  {t("admin.reject")}
+                </AccentButton>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
       </Modal>
     </div>
   );
@@ -551,6 +657,7 @@ function ServicesAdmin() {
   const persist = async (platform: Platform, msg: string) => {
     const ok = await savePlatform(platform);
     push(ok ? "success" : "info", msg, ok ? "✓ synced to cloud" : "saved locally, will sync");
+    if (ok) log("service.update", `${msg} — ${platform.name}`);
   };
 
   return (
@@ -626,7 +733,10 @@ function ServicesAdmin() {
                 <button
                   onClick={() => {
                     if (confirm(t("admin.confirmDelete"))) {
-                      void deleteServiceType(sel.id, s.id).then(() => push("success", "Deleted", s.name));
+                      void deleteServiceType(sel.id, s.id).then(() => {
+                        push("success", "Deleted", s.name);
+                        log("service.delete", `Service "${s.name}" deleted from ${sel.name}`);
+                      });
                     }
                   }}
                   aria-label={t("common.delete")}
@@ -793,6 +903,12 @@ function PaymentsAdmin() {
       payments: { crypto, esewa, khalti, bank },
     });
     push(ok ? "success" : "info", t("admin.saved"), ok ? "✓ synced" : "queued offline");
+    if (ok) {
+      log(
+        "payments.update",
+        `Payments saved — rate ${Math.max(1, Number(rate) || settings.exchangeRate)} · crypto ${crypto.enabled ? "VISIBLE" : "HIDDEN"} · eSewa ${esewa.enabled ? "on" : "off"} · Khalti ${khalti.enabled ? "on" : "off"} · Bank ${bank.enabled ? "on" : "off"}`,
+      );
+    }
   };
 
   return (
@@ -805,15 +921,24 @@ function PaymentsAdmin() {
       </GlassCard>
 
       <GlassCard className="space-y-4 p-5">
-        <div className="flex items-center justify-between">
-          <h4 className="flex items-center gap-2 text-sm font-bold">
-            <Coins size={14} className="text-acc-2" />
-            Crypto wallets
-          </h4>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h4 className="flex items-center gap-2 text-sm font-bold">
+              <Coins size={14} className="text-acc-2" />
+              {t("admin.cryptoVisibility")}
+            </h4>
+            <p className="mt-0.5 text-[11px] text-muted-foreground">{t("admin.cryptoVisibilityHint")}</p>
+          </div>
           <div className="flex items-center gap-2">
             <Toggle checked={crypto.enabled} onChange={(v) => setCrypto({ ...crypto, enabled: v })} />
             <span className="text-[11px] font-semibold text-muted-foreground">{crypto.enabled ? t("admin.enabled") : t("admin.disabled")}</span>
           </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <h4 className="flex items-center gap-2 text-sm font-bold">
+            <Wallet size={14} className="text-acc-2" />
+            Crypto wallets
+          </h4>
         </div>
         {crypto.wallets.map((w, i) => (
           <div key={w.id} className="grid grid-cols-[130px_1fr_32px] items-center gap-2">
@@ -888,6 +1013,7 @@ function ChatbotAdmin() {
   const save = async () => {
     const ok = await saveSettingsPatch({ chatbot: cfg });
     push(ok ? "success" : "info", t("admin.saved"), ok ? "✓ synced" : "queued offline");
+    if (ok) log("chatbot.update", `AI bot settings saved — ${cfg.enabled ? "enabled" : "disabled"}, bot "${cfg.botName}"`);
   };
 
   const updFaq = (id: string, patch: Partial<FaqEntry>) =>
@@ -1043,6 +1169,7 @@ function LinksAdmin() {
           onClick={async () => {
             const ok = await saveSettingsPatch({ social });
             push(ok ? "success" : "info", t("admin.saved"), ok ? "✓" : "queued");
+            if (ok) log("links.update", "Contact & social links updated");
           }}
         >
           <Save size={14} />
@@ -1055,48 +1182,298 @@ function LinksAdmin() {
 
 /* ============================== USERS TAB ============================== */
 
+function StatusChip({ status }: { status?: UserProfile["status"] }) {
+  const { t } = useI18n();
+  const map = {
+    pending: { label: t("admin.statusPending"), cls: "border-amber-500/40 bg-amber-500/10 text-amber-500" },
+    active: { label: t("admin.statusActive"), cls: "border-emerald-500/40 bg-emerald-500/10 text-emerald-500" },
+    suspended: { label: t("admin.statusSuspended"), cls: "border-red-500/40 bg-red-500/10 text-red-400" },
+  } as const;
+  const s = map[status ?? "active"];
+  return (
+    <span className={cn("flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-extrabold", s.cls)}>
+      {status === "pending" ? <Hourglass size={9} /> : status === "suspended" ? <Ban size={9} /> : <CheckCircle2 size={9} />}
+      {s.label}
+    </span>
+  );
+}
+
 function UsersAdmin() {
   const { t } = useI18n();
   const { users } = useUsers();
   const { user: me } = useAuth();
+  const { push } = useToasts();
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<"all" | "pending" | "active" | "suspended">("all");
+
+  const sorted = useMemo(() => {
+    const rank = (u: UserProfile) => (u.status === "pending" ? 0 : u.status === "suspended" ? 1 : 2);
+    return [...users].sort((a, b) => rank(a) - rank(b) || (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  }, [users]);
+
+  const visible = filter === "all" ? sorted : sorted.filter((u) => (u.status ?? "active") === filter);
+  const pendingCount = users.filter((u) => u.status === "pending").length;
+
+  const act = async (u: UserProfile, next: UserProfile["status"]) => {
+    setBusyId(u.uid);
+    const ok = await patchUser(u.uid, {
+      status: next,
+      ...(next === "suspended" ? { suspendedAt: Date.now() } : {}),
+    });
+    // also sync the mirrored record's status through saveUserProfile-free path
+    setBusyId(null);
+    push(ok ? "success" : "info", `${u.name} → ${next}`, ok ? "✓ applied live" : "queued offline");
+    if (ok) {
+      const tag = next === "active" && u.status === "pending" ? "user.approve" : next === "suspended" ? "user.suspend" : "user.restore";
+      log(tag, `User "${u.name}" (${u.email ?? u.uid}) → ${next}`);
+    }
+  };
+
+  const setRole = async (u: UserProfile, role: "user" | "admin") => {
+    if (role === u.role) return;
+    const ok = await saveUserProfile({ ...u, role });
+    push(ok ? "success" : "info", `${u.name} → ${role}`, ok ? "✓" : "queued");
+    if (ok) log("user.role", `Role of "${u.name}" set to ${role}`);
+  };
+
+  const remove = async (u: UserProfile) => {
+    if (!confirm(t("admin.confirmDeleteUser"))) return;
+    setBusyId(u.uid);
+    const ok = await deleteUserProfile(u.uid);
+    setBusyId(null);
+    push(ok ? "success" : "info", t("admin.deleteUser"), u.name);
+    if (ok) log("user.delete", `User "${u.name}" (${u.email ?? u.uid}) permanently deleted`);
+  };
 
   return (
-    <div className="space-y-3">
-      {users.map((u) => (
-        <GlassCard key={u.uid} className="flex flex-wrap items-center gap-3 p-4">
-          <span
-            className="flex h-10 w-10 items-center justify-center rounded-xl text-sm font-extrabold text-white"
-            style={{ background: "linear-gradient(135deg, var(--acc-1), var(--acc-2))" }}
-          >
-            {(u.name || "G").slice(0, 1).toUpperCase()}
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold">
-              {u.name} {me?.uid === u.uid ? <span className="text-[10px] font-bold text-acc-1">(you)</span> : null}
-            </p>
-            <p className="truncate text-xs text-muted-foreground">
-              {u.email ?? "—"} · {u.provider} · {new Date(u.createdAt).toLocaleDateString()}
-            </p>
-          </div>
-          <Segmented
-            size="sm"
-            value={u.role}
-            onChange={(v) => void saveUserProfile({ ...u, role: v as "user" | "admin" })}
-            options={[
-              { value: "user", label: "user" },
-              { value: "admin", label: "admin" },
-            ]}
-          />
-        </GlassCard>
-      ))}
-      {users.length === 0 ? (
-        <p className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
-          <Users size={16} />
-          {t("orders.empty")}
-        </p>
-      ) : null}
+    <div className="space-y-4">
+      <GlassCard className="flex flex-wrap items-center justify-between gap-3 p-4">
+        <div>
+          <h4 className="flex items-center gap-2 text-sm font-bold">
+            <Users size={15} className="text-acc-1" />
+            {t("admin.users")}
+          </h4>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">{t("admin.usersHint")}</p>
+        </div>
+        <Segmented
+          size="sm"
+          value={filter}
+          onChange={(v) => setFilter(v as "all" | "pending" | "active" | "suspended")}
+          options={[
+            { value: "all", label: `All (${users.length})` },
+            { value: "pending", label: `⏳ ${pendingCount}` },
+            { value: "active", label: `✓ ${users.filter((u) => (u.status ?? "active") === "active").length}` },
+            { value: "suspended", label: `⛔ ${users.filter((u) => u.status === "suspended").length}` },
+          ]}
+        />
+      </GlassCard>
+
+      <div className="space-y-3">
+        <AnimatePresence initial={false}>
+          {visible.map((u) => {
+            const status = u.status ?? "active";
+            const isMe = me?.uid === u.uid;
+            return (
+              <motion.div
+                key={u.uid}
+                layout
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+              >
+                <GlassCard
+                  className={cn(
+                    "flex flex-wrap items-center gap-3 p-4",
+                    status === "pending" && "border-amber-500/30",
+                    status === "suspended" && "border-red-500/30 opacity-80",
+                  )}
+                >
+                  <span
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-extrabold text-white"
+                    style={{ background: "linear-gradient(135deg, var(--acc-1), var(--acc-2))" }}
+                  >
+                    {(u.name || "G").slice(0, 1).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="truncate text-sm font-bold">
+                        {u.name}
+                        {isMe ? <span className="ml-1 text-[10px] font-bold text-acc-1">(you)</span> : null}
+                      </p>
+                      <StatusChip status={status} />
+                      {u.role === "admin" ? (
+                        <span className="rounded-full border border-acc-1/40 bg-accent px-2 py-0.5 text-[10px] font-extrabold text-acc-1">ADMIN</span>
+                      ) : null}
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {u.email ?? "—"} · {u.provider} · {t("admin.lastLogin")} {timeAgo(u.lastLoginAt ?? u.createdAt)}
+                    </p>
+                  </div>
+
+                  <Segmented
+                    size="sm"
+                    value={u.role}
+                    onChange={(v) => void setRole(u, v as "user" | "admin")}
+                    options={[
+                      { value: "user", label: "user" },
+                      { value: "admin", label: "admin" },
+                    ]}
+                  />
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {status === "pending" ? (
+                      <AccentButton size="sm" disabled={busyId === u.uid} onClick={() => void act(u, "active")}>
+                        <UserCheck size={13} />
+                        {t("admin.approve")}
+                      </AccentButton>
+                    ) : null}
+                    {status === "active" && !isMe ? (
+                      <AccentButton size="sm" variant="danger" disabled={busyId === u.uid} onClick={() => void act(u, "suspended")}>
+                        <Ban size={13} />
+                        {t("admin.suspend")}
+                      </AccentButton>
+                    ) : null}
+                    {status === "suspended" ? (
+                      <AccentButton size="sm" disabled={busyId === u.uid} onClick={() => void act(u, "active")}>
+                        <RotateCcw size={13} />
+                        {t("admin.unban")}
+                      </AccentButton>
+                    ) : null}
+                    {!isMe ? (
+                      <button
+                        onClick={() => void remove(u)}
+                        disabled={busyId === u.uid}
+                        aria-label={t("admin.deleteUser")}
+                        title={t("admin.deleteUser")}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg text-red-400 transition-colors hover:bg-red-500/10"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    ) : null}
+                  </div>
+                </GlassCard>
+              </motion.div>
+            );
+          })}
+        </AnimatePresence>
+        {visible.length === 0 ? (
+          <p className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+            <UserX size={16} />
+            {t("orders.empty")}
+          </p>
+        ) : null}
+      </div>
     </div>
   );
+}
+
+/* ============================== LOGS TAB ============================== */
+
+const LOG_ICON: Record<string, React.ReactNode> = {
+  "admin.login": <KeyRound size={13} />,
+  "order.processing": <ShieldCheck size={13} />,
+  "order.completed": <CheckCircle2 size={13} />,
+  "order.rejected": <X size={13} />,
+  "order.receipt_view": <Eye size={13} />,
+  "service.update": <Package size={13} />,
+  "service.delete": <Trash2 size={13} />,
+  "payments.update": <Wallet size={13} />,
+  "chatbot.update": <Bot size={13} />,
+  "links.update": <Link2 size={13} />,
+  "settings.update": <ShieldCheck size={13} />,
+  "user.approve": <UserCheck size={13} />,
+  "user.suspend": <Ban size={13} />,
+  "user.restore": <RotateCcw size={13} />,
+  "user.delete": <UserX size={13} />,
+  "user.role": <Users size={13} />,
+  "logs.clear": <ScrollText size={13} />,
+};
+
+function LogsAdmin() {
+  const { t } = useI18n();
+  const { logs, ready } = useLogs();
+  const { push } = useToasts();
+  const [filter, setFilter] = useState<"all" | "orders" | "users" | "system">("all");
+
+  const visible = useMemo(() => {
+    if (filter === "all") return logs;
+    if (filter === "orders") return logs.filter((l) => l.action.startsWith("order."));
+    if (filter === "users") return logs.filter((l) => l.action.startsWith("user."));
+    return logs.filter((l) => !l.action.startsWith("order.") && !l.action.startsWith("user."));
+  }, [logs, filter]);
+
+  const clear = async () => {
+    if (!confirm("Clear all system logs?")) return;
+    const { remove } = await import("@/lib/rtdb");
+    const ok = await remove("csmm/logs");
+    push(ok ? "success" : "info", t("admin.clearLogs"), ok ? "✓" : "queued");
+    if (ok) log("logs.clear", "System logs cleared");
+  };
+
+  return (
+    <div className="space-y-4">
+      <GlassCard className="flex flex-wrap items-center justify-between gap-3 p-4">
+        <h4 className="flex items-center gap-2 text-sm font-bold">
+          <ScrollText size={15} className="text-acc-3" />
+          {t("admin.logs")}
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">{logs.length}</span>
+        </h4>
+        <div className="flex flex-wrap items-center gap-2">
+          <Segmented
+            size="sm"
+            value={filter}
+            onChange={(v) => setFilter(v as "all" | "orders" | "users" | "system")}
+            options={[
+              { value: "all", label: "All" },
+              { value: "orders", label: "Orders" },
+              { value: "users", label: "Users" },
+              { value: "system", label: "System" },
+            ]}
+          />
+          <AccentButton size="sm" variant="ghost" onClick={() => void clear()}>
+            <Trash2 size={13} />
+            {t("admin.clearLogs")}
+          </AccentButton>
+        </div>
+      </GlassCard>
+
+      <div className="space-y-2">
+        {!ready ? (
+          <p className="py-10 text-center text-sm text-muted-foreground">{t("common.loading")}</p>
+        ) : visible.length === 0 ? (
+          <p className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
+            <FileText size={16} />
+            {t("admin.logsEmpty")}
+          </p>
+        ) : (
+          visible.map((l) => (
+            <motion.div
+              key={l.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="glass flex items-start gap-3 rounded-xl px-4 py-3"
+            >
+              <span
+                className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-acc-1"
+                style={{ background: "color-mix(in oklab, var(--acc-1) 12%, transparent)" }}
+              >
+                {LOG_ICON[l.action] ?? <ScrollText size={13} />}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs leading-relaxed text-foreground/90">{l.detail}</p>
+                <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[10px] text-muted-foreground">
+                  <span className="rounded bg-muted px-1.5 py-0.5 font-mono font-bold">{l.action}</span>
+                  <span>· {l.actor}</span>
+                  <span title={fmtDateTime(l.ts)}>· {timeAgo(l.ts)}</span>
+                </p>
+              </div>
+              <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{fmtDateTime(l.ts)}</span>
+            </motion.div>
+          ))
+        )}
+      </div>
+    </div>
+  )
 }
 
 /* ============================== SETTINGS TAB ============================== */
@@ -1125,7 +1502,7 @@ function SettingsAdmin() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `ezfamenp-backup-${Date.now()}.json`;
+      a.download = `ezfame-backup-${Date.now()}.json`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -1153,6 +1530,7 @@ function SettingsAdmin() {
           onClick={async () => {
             const ok = await saveSettingsPatch({ siteName, tagline, supportHours: hours });
             push(ok ? "success" : "info", t("admin.saved"));
+            if (ok) log("settings.update", `Branding saved — site "${siteName}", tagline "${tagline}"`);
           }}
         >
           <Save size={13} />
@@ -1192,6 +1570,7 @@ function SettingsAdmin() {
               }
               const ok = await saveSettingsPatch(patch);
               push(ok ? "success" : "info", t("admin.saved"), "admin credentials updated");
+              if (ok) log("settings.update", "Master admin credentials rotated");
               setNewUser("");
               setNewPass("");
             }}
@@ -1200,7 +1579,7 @@ function SettingsAdmin() {
             Update
           </AccentButton>
         </div>
-        <p className="text-[11px] text-muted-foreground">Default credentials on fresh installs: ramesh / agrim — change them here.</p>
+        <p className="text-[11px] text-muted-foreground">{t("admin.credentialsHint")}</p>
       </GlassCard>
 
       <GlassCard className="space-y-3 p-5">
@@ -1224,6 +1603,7 @@ function SettingsAdmin() {
                 }
                 saveFirebaseConfigOverride(parsed);
                 push("success", t("admin.saved"), "Reloading…");
+                log("settings.update", "Firebase config override applied — reloading");
                 setTimeout(() => window.location.reload(), 900);
               } catch {
                 push("error", "Invalid JSON");
@@ -1275,6 +1655,7 @@ function SettingsAdmin() {
               await dbSet("csmm/catalog", DEFAULT_CATALOG);
               await dbSet("csmm/settings", { ...DEFAULT_SETTINGS, updatedAt: Date.now() });
               push("success", "Defaults re-seeded", "catalog + settings");
+              log("settings.update", "Catalog + settings re-seeded to factory defaults");
             }}
           >
             <RefreshCw size={13} />
@@ -1290,39 +1671,78 @@ function SettingsAdmin() {
 
 export function AdminView() {
   const { t } = useI18n();
-  const { user, isAdmin } = useAuth();
+  const { user } = useAuth();
   const { orders, ready } = useAllOrders();
   const { settings } = useSettings();
-  const [unlocked, setUnlocked] = useState(() => {
+  const { users } = useUsers();
+  /* unlock flag is re-derived from sessionStorage on every user/tick change */
+  const [unlockTick, setUnlockTick] = useState(0);
+  const unlocked = useMemo(() => {
     try {
-      return typeof window !== "undefined" && sessionStorage.getItem(LS_ADMIN_OK) === "1";
+      return sessionStorage.getItem(LS_ADMIN_OK) === `master:${user?.uid ?? "anon"}`;
     } catch {
       return false;
     }
-  });
+  }, [user, unlockTick]);
   const [tab, setTab] = useState<Tab>("dashboard");
 
-  const gatePassed = unlocked || isAdmin;
-  const settingsKey = settings.updatedAt ?? 0;
+  /*
+   * STRICT ROUTE PROTECTION — the client session (localStorage) is
+   * user-editable and therefore NEVER trusted. Admin access by role is
+   * only granted when the database record for the signed-in uid says
+   * role === "admin" AND status === "active". Guests and tampered
+   * sessions are always rejected. Master credentials unlock a
+   * session-scoped flag in sessionStorage (cleared on every restart).
+   */
+  const [dbAdmin, setDbAdmin] = useState(false);
+  const [dbAdminUid, setDbAdminUid] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user || user.provider === "guest") return;
+    const uid = user.uid;
+    const unsub = subscribe<UserProfile>(`csmm/users/${uid}`, (remote) => {
+      const isAdminInDb = !!remote && remote.role === "admin" && (remote.status ?? "active") === "active";
+      setDbAdmin(isAdminInDb);
+      setDbAdminUid(uid);
+      if (isAdminInDb) {
+        logActor = remote?.name ?? user.name;
+      }
+    });
+    return () => {
+      try {
+        unsub();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [user]);
 
-  const tabs: Array<{ id: Tab; label: string; icon: React.ReactNode }> = [
+  // role-based admin only counts for the uid currently signed in
+  const gatePassed = unlocked || (dbAdmin && dbAdminUid === user?.uid && !!user && user.provider !== "guest");
+  const settingsKey = settings.updatedAt ?? 0;
+  const pendingCount = users.filter((u) => u.status === "pending").length;
+
+  const tabs: Array<{ id: Tab; label: string; icon: React.ReactNode; badge?: number }> = [
     { id: "dashboard", label: t("admin.title").split(" ")[0], icon: <MessageSquare size={13} /> },
     { id: "orders", label: "Orders", icon: <ShoppingBag size={13} /> },
     { id: "services", label: "Services", icon: <Package size={13} /> },
     { id: "payments", label: "Payments", icon: <Coins size={13} /> },
     { id: "chatbot", label: "AI Bot", icon: <Bot size={13} /> },
     { id: "links", label: "Links", icon: <Link2 size={13} /> },
-    { id: "users", label: "Users", icon: <Users size={13} /> },
+    { id: "users", label: "Users", icon: <Users size={13} />, badge: pendingCount },
+    { id: "logs", label: "Logs", icon: <ScrollText size={13} /> },
     { id: "settings", label: "Settings", icon: <ShieldCheck size={13} /> },
   ];
 
   if (!gatePassed) {
-    return <Gate onPass={() => setUnlocked(true)} />;
+    return <Gate onPass={() => setUnlockTick((t) => t + 1)} />;
   }
 
   return (
     <section className="mx-auto max-w-6xl px-4 pb-24 pt-24 sm:px-6 sm:pt-28">
-      <SectionTitle eyebrow={`#/original — ${user?.role === "admin" ? "role: admin" : "access unlocked"}`} title={t("admin.title")} />
+      <SectionTitle
+        eyebrow={`#/original — ${dbAdmin && user ? t("admin.roleAdmin") : unlocked ? t("admin.masterSession") : t("admin.accessUnlocked")}`}
+        title={t("admin.title")}
+      />
 
       <div className="no-scrollbar mb-6 flex gap-2 overflow-x-auto pb-1">
         {tabs.map((tb) => (
@@ -1330,12 +1750,17 @@ export function AdminView() {
             key={tb.id}
             onClick={() => setTab(tb.id)}
             className={cn(
-              "glass flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all",
+              "glass relative flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition-all",
               tab === tb.id && "pill-active text-acc-1",
             )}
           >
             {tb.icon}
             {tb.label}
+            {tb.badge ? (
+              <span className="ml-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[9px] font-extrabold text-black">
+                {tb.badge}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
@@ -1361,6 +1786,7 @@ export function AdminView() {
           {tab === "chatbot" ? <ChatbotAdmin /> : null}
           {tab === "links" ? <LinksAdmin /> : null}
           {tab === "users" ? <UsersAdmin /> : null}
+          {tab === "logs" ? <LogsAdmin /> : null}
           {tab === "settings" ? <SettingsAdmin /> : null}
         </motion.div>
       </AnimatePresence>

@@ -1,6 +1,6 @@
-# EzFameNp — SMM & In-Game Top-Up E-Commerce App
+# EzFame — SMM & In-Game Top-Up E-Commerce App
 
-A production-grade, zero-crash **SMM (Social Media Marketing) + Game Top-Up store** built with a bespoke cyberpunk-glassmorphism UI, ready for **GitHub Pages** (static SPA) and wired to your **Firebase Realtime Database**.
+A production-grade, zero-crash **SMM (Social Media Marketing) + Game Top-Up store** built with a bespoke glassmorphism UI, ready for **GitHub Pages** (static SPA) and wired to your **Firebase Realtime Database**.
 
 ![stack](https://img.shields.io/badge/Next.js%2016-App%20Router-black) ![bun](https://img.shields.io/badge/bun%20%7C%20pnpm-compatible-f472b6) ![GH Pages](https://img.shields.io/badge/GitHub%20Pages-static%20SPA-22d3ee)
 
@@ -51,11 +51,13 @@ The admin panel is additionally reachable as **`/original`** (real path) or **`?
 ### 🔑 Admin credentials
 
 ```
-Username: ramesh
-Password: agrim
+Username: agrim
+Password: ramesh
 ```
 
 Change them in **Admin ▸ Settings ▸ Admin credentials** (stored as SHA-256 hashes in the DB).
+
+> Route protection is **strict**: the client session is never trusted — admin-by-role is verified against the database record (`role: admin`, `status: active`), and the master credentials unlock a session-scoped flag that is cleared on every restart. New sign-ups start **pending** and cannot browse or buy until an admin approves them in **Admin ▸ Users** (suspend/restore/delete supported). Every admin action is recorded in **Admin ▸ Logs**. Crypto payments are hidden by default — toggle in **Admin ▸ Payments**.
 
 ---
 

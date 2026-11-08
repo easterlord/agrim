@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzFameNp — resilient Firebase Realtime Database layer.
+ * EzFame — resilient Firebase Realtime Database layer.
  *
  * Strategy (zero-crash guarantee):
  *   1. Firebase JS SDK  (true realtime WebSocket) — used when a
@@ -26,53 +26,48 @@ import {
   remove as dbRemove,
   type Database,
 } from "firebase/database";
-import { DEFAULT_CATALOG, DEFAULT_DB_URL, DEFAULT_SETTINGS } from "./defaults";
-import { sanitize, deepMerge, genId } from "./utils";
-import type { FirebaseClientConfig, Platform, Settings, SyncStatus } from "./types";
+import { DEFAULT_CATALOG, DEFAULT_DB_URL, DEFAULT_FIREBASE_CONFIG, RTDB_URL_CANDIDATES, DEFAULT_SETTINGS } from "./defaults";
+import { sanitize, deepMerge, genId, randomHex } from "./utils";
+import type { FirebaseClientConfig, LogEntry, Platform, Settings, SyncStatus } from "./types";
 
 /* ---------------- config resolution ---------------- */
 
-const LS_CONFIG = "ezfamenp:fbconfig";
-const LS_CACHE = "ezfamenp:cache:v1";
-const LS_QUEUE = "ezfamenp:wq:v1";
+const LS_CONFIG = "ezfame:fbconfig";
+const LS_CACHE = "ezfame:cache:v1";
+const LS_QUEUE = "ezfame:wq:v1";
+const LS_DB_URL = "ezfame:rtdburl";
 
 export function getFirebaseConfig(): FirebaseClientConfig {
-  const fallback: FirebaseClientConfig = {
-    apiKey: "",
-    authDomain: "",
-    databaseURL: DEFAULT_DB_URL,
-    projectId: "cipher-dump",
-    storageBucket: "",
-    messagingSenderId: "",
-    appId: "",
-  };
+  // 0) exact project config (strict baseline)
+  const base: FirebaseClientConfig = { ...DEFAULT_FIREBASE_CONFIG };
 
-  // 1) admin-entered runtime override
+  // 1) admin-entered runtime override (full replace)
   try {
     const raw = localStorage.getItem(LS_CONFIG);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<FirebaseClientConfig>;
-      return { ...fallback, ...parsed, databaseURL: parsed.databaseURL || fallback.databaseURL };
+      return { ...base, ...parsed, databaseURL: parsed.databaseURL || base.databaseURL };
     }
   } catch {
     /* ignore */
   }
 
-  // 2) build-time env vars
+  // 2) build-time env vars (optional overrides)
   const env = process.env;
-  const cfg: FirebaseClientConfig = {
-    apiKey: env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
-    authDomain: env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
+  return {
+    apiKey: env.NEXT_PUBLIC_FIREBASE_API_KEY || base.apiKey,
+    authDomain: env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || base.authDomain,
     databaseURL:
       env.NEXT_PUBLIC_FIREBASE_DATABASE_URL ||
       env.NEXT_PUBLIC_FIREBASE_DB_URL ||
-      fallback.databaseURL,
-    projectId: env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || fallback.projectId,
-    storageBucket: env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "",
-    messagingSenderId: env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
-    appId: env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
+      resolvedDbUrl ||
+      base.databaseURL,
+    projectId: env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || base.projectId,
+    storageBucket: env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || base.storageBucket,
+    messagingSenderId: env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || base.messagingSenderId,
+    appId: env.NEXT_PUBLIC_FIREBASE_APP_ID || base.appId,
+    measurementId: env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || base.measurementId,
   };
-  return cfg;
 }
 
 export function saveFirebaseConfigOverride(cfg: Partial<FirebaseClientConfig> | null) {
@@ -92,6 +87,85 @@ export function firebaseAuthConfigured(): boolean {
     /* ignore */
   }
   return false;
+}
+
+/* ---------------- database URL resolution (probe once) ---------------- */
+
+let resolvedDbUrl: string | null = null;
+let urlPromise: Promise<string> | null = null;
+
+async function probeUrl(url: string, timeoutMs = 4000): Promise<boolean> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(`${url.replace(/\/+$/, "")}/.json?shallow=true`, {
+      signal: ctrl.signal,
+      cache: "no-store",
+    });
+    return res.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+/**
+ * Resolve the reachable RTDB endpoint: admin override → cached probe
+ * result → candidate probe. Never throws; resolves to the best guess
+ * even when every probe fails (offline mode still works).
+ */
+export function resolveDatabaseUrl(): Promise<string> {
+  if (resolvedDbUrl) return Promise.resolve(resolvedDbUrl);
+  if (urlPromise) return urlPromise;
+
+  urlPromise = (async () => {
+    // explicit admin override always wins
+    try {
+      const raw = localStorage.getItem(LS_CONFIG);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<FirebaseClientConfig>;
+        if (parsed.databaseURL) {
+          resolvedDbUrl = parsed.databaseURL;
+          return resolvedDbUrl;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    if (typeof window === "undefined") {
+      resolvedDbUrl = DEFAULT_FIREBASE_CONFIG.databaseURL;
+      return resolvedDbUrl;
+    }
+
+    // previously probed + cached
+    try {
+      const cached = localStorage.getItem(LS_DB_URL);
+      if (cached && (await probeUrl(cached, 3000))) {
+        resolvedDbUrl = cached;
+        return resolvedDbUrl;
+      }
+    } catch {
+      /* ignore */
+    }
+
+    for (const candidate of RTDB_URL_CANDIDATES) {
+      if (await probeUrl(candidate)) {
+        resolvedDbUrl = candidate;
+        try {
+          localStorage.setItem(LS_DB_URL, candidate);
+        } catch {
+          /* ignore */
+        }
+        return resolvedDbUrl;
+      }
+    }
+
+    resolvedDbUrl = DEFAULT_DB_URL;
+    return resolvedDbUrl;
+  })();
+
+  return urlPromise;
 }
 
 /* ---------------- status emitter ---------------- */
@@ -201,8 +275,8 @@ function initSdk(): Database | null {
   if (database || sdkFailed) return database;
   try {
     const cfg = getFirebaseConfig();
-    const existing = getApps().find((a) => a.name === "ezfamenp");
-    app = existing ?? initializeApp({ databaseURL: cfg.databaseURL }, "ezfamenp");
+    const existing = getApps().find((a) => a.name === "ezfame");
+    app = existing ?? initializeApp({ databaseURL: cfg.databaseURL }, "ezfame");
     database = getDatabase(app);
   } catch {
     sdkFailed = true;
@@ -435,6 +509,7 @@ export function subscribe<T>(
 
   const teardown: Array<() => void> = [];
   let stopped = false;
+  let started = false;
 
   const applyRemote = (v: T | null) => {
     setStatus("online");
@@ -489,7 +564,14 @@ export function subscribe<T>(
     })();
   };
 
-  if (!trySdk()) tryRest();
+  const start = () => {
+    if (started || stopped) return;
+    started = true;
+    if (!trySdk()) tryRest();
+  };
+
+  // wait for the RTDB endpoint probe, then open the realtime stream
+  void resolveDatabaseUrl().then(start, start);
 
   return () => {
     stopped = true;
@@ -505,6 +587,7 @@ export function subscribe<T>(
 
 /** One-shot read with remote-first, cache-fallback semantics. */
 export async function get<T>(path: string): Promise<T | null> {
+  await resolveDatabaseUrl();
   const db = initSdk();
   if (db) {
     try {
@@ -533,6 +616,7 @@ export async function get<T>(path: string): Promise<T | null> {
 
 /** Write-through set: applies locally, then syncs remotely (queued on failure). */
 export async function set(path: string, value: unknown): Promise<boolean> {
+  await resolveDatabaseUrl();
   const clean = sanitize(value);
   cacheSet(path, clean);
   const db = initSdk();
@@ -563,6 +647,7 @@ export async function set(path: string, value: unknown): Promise<boolean> {
 
 /** Write-through update (partial merge). */
 export async function update(path: string, value: Record<string, unknown>): Promise<boolean> {
+  await resolveDatabaseUrl();
   const clean = sanitize(value) as Record<string, unknown>;
   const merged = { ...((cacheGet<Record<string, unknown>>(path) ?? {}) as object), ...clean };
   cacheSet(path, merged);
@@ -592,6 +677,7 @@ export async function update(path: string, value: Record<string, unknown>): Prom
 }
 
 export async function remove(path: string): Promise<boolean> {
+  await resolveDatabaseUrl();
   cacheSet(path, null);
   const db = initSdk();
   if (db) {
@@ -642,6 +728,7 @@ export function ensureSeed(): Promise<void> {
   if (seeding) return seeding;
   seeding = (async () => {
     try {
+      await resolveDatabaseUrl();
       const [catalog, settings] = await Promise.all([
         get<unknown>("csmm/catalog"),
         get<unknown>("csmm/settings"),
@@ -659,16 +746,38 @@ export function ensureSeed(): Promise<void> {
   return seeding;
 }
 
+/* ---------------- admin activity logs ---------------- */
+
+/** Append an admin action to csmm/logs. Never throws. */
+export async function pushLog(action: string, detail: string, actor = "master"): Promise<void> {
+  try {
+    const entry: LogEntry = {
+      id: `${Date.now().toString(36)}-${randomHex(4)}`,
+      ts: Date.now(),
+      actor,
+      action,
+      detail,
+    };
+    await set(`csmm/logs/${entry.id}`, entry);
+  } catch {
+    /* logging is best-effort */
+  }
+}
+
 export function resetLocalData() {
   try {
     localStorage.removeItem(LS_CACHE);
     localStorage.removeItem(LS_QUEUE);
+    localStorage.removeItem(LS_DB_URL);
   } catch {
     /* ignore */
   }
   cache = {};
   queue = [];
   cacheLoaded = false;
+  // re-resolve the RTDB endpoint on next use
+  resolvedDbUrl = null;
+  urlPromise = null;
 }
 
 export function exportLocalData(): string {

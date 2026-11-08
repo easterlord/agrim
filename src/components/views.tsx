@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzFameNp — orders, account & auth views
+ * EzFame — orders, account & auth views
  * ============================================================ */
 
 import { AnimatePresence, motion } from "framer-motion";
@@ -479,7 +479,7 @@ export function LoginView() {
           }}
         >
           <div>
-            <p className="font-[family-name:var(--f-display)] text-2xl font-extrabold text-gradient">EzFameNp</p>
+            <p className="font-[family-name:var(--f-display)] text-2xl font-extrabold text-gradient">EzFame</p>
             <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted-foreground">{t("auth.sub")}</p>
           </div>
           <ul className="space-y-3 text-sm">

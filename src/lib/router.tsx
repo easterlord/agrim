@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzFameNp — tiny hash-based SPA router.
+ * EzFame — tiny hash-based SPA router.
  * Hash routing makes the whole app 100% compatible with GitHub
  * Pages (no server rewrites needed) while behaving like normal
  * client-side navigation.

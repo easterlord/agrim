@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzFameNp — local order mirror.
+ * EzFame — local order mirror.
  * Orders created on this device are stored locally too, so users
  * always see their orders even if the cloud write is queued
  * (offline mode) or the DB rules reject guest writes.
@@ -9,7 +9,7 @@
 
 import type { Order } from "./types";
 
-const LS_MY = "ezfamenp:myorders";
+const LS_MY = "ezfame:myorders";
 
 export function readLocalOrders(): Order[] {
   try {

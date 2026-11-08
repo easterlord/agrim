@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzFameNp — floating AI support assistant (admin-configurable)
+ * EzFame — floating AI support assistant (admin-configurable)
  * ============================================================ */
 
 import { AnimatePresence, motion } from "framer-motion";
@@ -97,25 +97,43 @@ export function ChatWidget() {
 
   return (
     <>
-      {/* launcher */}
+      {/* launcher — perfectly round, spring-animated FAB */}
       <motion.button
-        initial={{ scale: 0, rotate: -30 }}
+        initial={{ scale: 0, rotate: -120 }}
         animate={{ scale: 1, rotate: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20, delay: 1 }}
+        transition={{ type: "spring", stiffness: 320, damping: 18, delay: 0.9 }}
         whileHover={{ scale: 1.08 }}
-        whileTap={{ scale: 0.92 }}
+        whileTap={{ scale: 0.9 }}
         onClick={() => setChatOpen(!chatOpen)}
         aria-label={t("chat.title")}
-        className="btn-accent fixed bottom-5 right-5 z-[80] flex h-14 w-14 items-center justify-center rounded-full shadow-2xl pb-safe"
+        title={t("chat.title")}
+        className="fixed right-5 z-[80] flex h-14 w-14 items-center justify-center rounded-full shadow-[0_10px_36px_-6px_rgba(0,0,0,0.55)] outline-none focus-visible:ring-2 focus-visible:ring-acc-1/70"
+        style={
+          {
+            bottom: "max(1.25rem, env(safe-area-inset-bottom))",
+            background: "linear-gradient(135deg, var(--acc-1), var(--acc-2))",
+            color: "#061019",
+          } as React.CSSProperties
+        }
       >
+        {/* breathing halo ring */}
+        {!chatOpen ? (
+          <motion.span
+            aria-hidden="true"
+            animate={{ scale: [1, 1.45], opacity: [0.45, 0] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
+            className="absolute inset-0 rounded-full"
+            style={{ background: "radial-gradient(circle, var(--acc-1) 0%, transparent 70%)" }}
+          />
+        ) : null}
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
             key={chatOpen ? "x" : "bot"}
-            initial={{ opacity: 0, scale: 0.5, rotate: -90 }}
+            initial={{ opacity: 0, scale: 0.4, rotate: -90 }}
             animate={{ opacity: 1, scale: 1, rotate: 0 }}
-            exit={{ opacity: 0, scale: 0.5, rotate: 90 }}
-            transition={{ duration: 0.18 }}
-            className="flex"
+            exit={{ opacity: 0, scale: 0.4, rotate: 90 }}
+            transition={{ duration: 0.16 }}
+            className="relative flex items-center justify-center"
           >
             {chatOpen ? <X size={22} /> : <MessageSquare size={22} />}
           </motion.span>
@@ -123,7 +141,7 @@ export function ChatWidget() {
         {!chatOpen ? (
           <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-3.5 w-3.5 rounded-full border-2 border-[#05070f] bg-emerald-400" />
+            <span className="relative inline-flex h-3.5 w-3.5 rounded-full border-2 border-[#06131c] bg-emerald-400" />
           </span>
         ) : null}
       </motion.button>
@@ -136,9 +154,10 @@ export function ChatWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.94 }}
             transition={{ type: "spring", stiffness: 340, damping: 28 }}
-            className="fixed bottom-[5.5rem] right-4 z-[80] w-[min(92vw,23rem)] origin-bottom-right sm:right-5"
+            className="fixed inset-x-2 z-[80] origin-bottom-right sm:inset-x-auto sm:right-5"
+            style={{ bottom: "calc(max(1.25rem, env(safe-area-inset-bottom)) + 3.75rem)" }}
           >
-            <GlassCard strong className="chat-tail flex h-[30rem] max-h-[70vh] flex-col overflow-hidden rounded-3xl">
+            <GlassCard strong className="chat-tail flex h-[30rem] max-h-[68vh] flex-col overflow-hidden rounded-3xl sm:w-[23rem]">
               {/* header */}
               <div className="flex items-center gap-3 border-b border-border/60 p-4">
                 <span

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "EzFameNp — SMM & Game Top-Up Store",
+  title: "EzFame — SMM & Game Top-Up Store",
   description:
     "Nepal's fastest SMM & in-game top-up store. Instagram, YouTube, TikTok, Telegram growth + PUBG UC, Free Fire Diamonds & more. Pay with eSewa, Khalti, bank or crypto.",
   keywords: [
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     icon: "/logo.svg",
   },
   openGraph: {
-    title: "EzFameNp — SMM & Game Top-Up Store",
+    title: "EzFame — SMM & Game Top-Up Store",
     description: "Instant social media growth & game top-ups. USD ⇄ NPR. eSewa · Khalti · Crypto.",
     type: "website",
   },
@@ -33,11 +33,11 @@ export const viewport: Viewport = {
 /* pre-hydration theme + language boot (prevents flash & mismatch) */
 const themeBoot = `
 try {
-  var s = JSON.parse(localStorage.getItem('ezfamenp:ui') || '{}');
+  var s = JSON.parse(localStorage.getItem('ezfame:ui') || '{}');
   var t = (s && s.state && s.state.theme) || 'dark';
   document.documentElement.classList.toggle('dark', t === 'dark');
   document.documentElement.dataset.theme = t;
-  var l = localStorage.getItem('ezfamenp:lang');
+  var l = localStorage.getItem('ezfame:lang');
   if (l && l !== 'en') {
     document.documentElement.lang = l;
     document.documentElement.classList.add('lang-deva');

@@ -1,5 +1,5 @@
 /* ============================================================
- * EzFameNp — Core domain types
+ * EzFame — Core domain types
  * Shared across the data layer, stores, views and admin panel.
  * ============================================================ */
 
@@ -121,6 +121,21 @@ export interface Order {
   payment: OrderPayment;
   status: OrderStatus;
   adminNote?: string;
+  /** user accepted the social-media drop disclaimer at checkout */
+  ackDrops?: boolean;
+}
+
+/* ---------------- Admin activity logs ---------------- */
+
+export interface LogEntry {
+  id: string;
+  ts: number;
+  /** who performed the action (master username or admin user name) */
+  actor: string;
+  /** short machine tag, e.g. "order.verify" */
+  action: string;
+  /** human-readable detail */
+  detail: string;
 }
 
 /* ---------------- Settings ---------------- */
@@ -212,14 +227,20 @@ export type AuthProviderId =
   | "guest"
   | "local";
 
+/** Account lifecycle — new signups start as "pending" until an admin approves. */
+export type UserStatus = "pending" | "active" | "suspended";
+
 export interface UserProfile {
   uid: string;
   name: string;
   email?: string;
   provider: AuthProviderId;
   role: "user" | "admin";
+  /** missing on legacy records — treated as "active" (grandfathered) */
+  status?: UserStatus;
   createdAt: number;
   lastLoginAt: number;
+  suspendedAt?: number;
 }
 
 /* ---------------- Firebase config ---------------- */
@@ -232,6 +253,7 @@ export interface FirebaseClientConfig {
   storageBucket?: string;
   messagingSenderId?: string;
   appId: string;
+  measurementId?: string;
 }
 
 /* ---------------- Realtime sync status ---------------- */

@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzFameNp — React data hooks over the resilient RTDB layer.
+ * EzFame — React data hooks over the resilient RTDB layer.
  * All hooks merge remote values with local defaults so the UI
  * NEVER renders empty/broken state, online or offline.
  * ============================================================ */
@@ -17,7 +17,7 @@ import {
   update,
 } from "./rtdb";
 import { DEFAULT_CATALOG } from "./defaults";
-import type { Order, OrderStatus, Platform, Settings, UserProfile } from "./types";
+import type { LogEntry, Order, OrderStatus, Platform, Settings, UserProfile } from "./types";
 
 /* ---------------- settings ---------------- */
 
@@ -198,6 +198,70 @@ export function useUsers(): { users: UserProfile[]; ready: boolean } {
   return { users, ready };
 }
 
-export async function saveUserProfile(profile: UserProfile): Promise<boolean> {
-  return set(`csmm/users/${profile.uid}`, profile);
+export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  const { get } = await import("./rtdb");
+  return get<UserProfile>(`csmm/users/${uid}`);
+}
+
+/**
+ * Upsert a user profile WITHOUT clobbering admin-controlled fields
+ * (role, approval status). New records start as "pending"; legacy
+ * records without a status are grandfathered as "active".
+ * Returns the merged profile as stored in the database.
+ */
+export async function saveUserProfile(profile: UserProfile): Promise<UserProfile> {
+  const existing = await getUserProfile(profile.uid);
+  const merged: UserProfile = {
+    ...profile,
+    ...(existing?.role ? { role: existing.role } : {}),
+    status: existing?.status ?? (existing ? "active" : "pending"),
+    ...(existing?.suspendedAt ? { suspendedAt: existing.suspendedAt } : {}),
+    createdAt: existing?.createdAt ?? profile.createdAt,
+  };
+  await set(`csmm/users/${profile.uid}`, merged);
+  return merged;
+}
+
+/** Admin-only: hard-delete a user record. */
+export async function deleteUserProfile(uid: string): Promise<boolean> {
+  return remove(`csmm/users/${uid}`);
+}
+
+/** Admin-only: patch lifecycle/role fields on a user record. */
+export async function patchUser(
+  uid: string,
+  patch: Partial<Pick<UserProfile, "status" | "role" | "suspendedAt">>,
+): Promise<boolean> {
+  return update(`csmm/users/${uid}`, { ...patch, lastLoginAt: Date.now() } as Record<string, unknown>);
+}
+
+/* ---------------- admin activity logs ---------------- */
+
+export function useLogs(): { logs: LogEntry[]; ready: boolean } {
+  const [map, setMap] = useState<Record<string, LogEntry> | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const unsub = subscribe<Record<string, LogEntry>>("csmm/logs", (v) => {
+      setMap(v);
+      setReady(true);
+    });
+    return () => {
+      try {
+        unsub();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, []);
+
+  const logs = useMemo(() => {
+    if (!map || typeof map !== "object") return [];
+    return Object.values(map)
+      .filter((l) => l && l.id)
+      .sort((a, b) => (b.ts ?? 0) - (a.ts ?? 0))
+      .slice(0, 300);
+  }, [map]);
+
+  return { logs, ready };
 }

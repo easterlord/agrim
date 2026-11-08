@@ -1,5 +1,5 @@
 /* ============================================================
- * EzFameNp — shared helpers
+ * EzFame — shared helpers
  * ============================================================ */
 
 import { clsx, type ClassValue } from "clsx";

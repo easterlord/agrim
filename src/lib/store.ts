@@ -1,7 +1,7 @@
 "use client";
 
 /* ============================================================
- * EzFameNp — client state (zustand).
+ * EzFame — client state (zustand).
  * Theme, currency & order draft persist across reloads.
  * ============================================================ */
 
@@ -30,7 +30,7 @@ export const useUI = create<UIState>()(
       toggleTheme: () => set({ theme: get().theme === "dark" ? "light" : "dark" }),
       setCurrency: (currency) => set({ currency }),
     }),
-    { name: "ezfamenp:ui", version: 1 },
+    { name: "ezfame:ui", version: 1 },
   ),
 );
 
@@ -97,7 +97,7 @@ export const useDraft = create<DraftState>()(
         ];
       },
     }),
-    { name: "ezfamenp:draft", version: 1 },
+    { name: "ezfame:draft", version: 1 },
   ),
 );
 

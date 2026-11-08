@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* ============================================================
- * EzFameNp — GitHub Pages static export builder.
+ * EzFame — GitHub Pages static export builder.
  *
  *   node scripts/ghp-build.mjs
  *

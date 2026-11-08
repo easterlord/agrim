@@ -1,12 +1,13 @@
 "use client";
 
 /* ============================================================
- * EzFameNp — home view: hero, category pills, configurator,
+ * EzFame — home view: hero, category pills, configurator,
  * live pricing, stats, features, how-it-works.
  * ============================================================ */
 
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  AlertTriangle,
   BadgePercent,
   Bot,
   ChevronRight,
@@ -18,7 +19,6 @@ import {
   ShieldCheck,
   ShoppingBag,
   Sparkles,
-  Users,
   Zap,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -47,8 +47,6 @@ export function Hero() {
   const scrollToShop = () => {
     document.getElementById("shop")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
-
-  const totalServices = platforms.reduce((s, p) => s + p.services.filter((x) => x.active).length, 0);
 
   return (
     <section className="relative overflow-hidden pt-28 sm:pt-32">
@@ -112,15 +110,14 @@ export function Hero() {
           </AccentButton>
         </motion.div>
 
-        {/* stats */}
+        {/* stats — 18,450+ orders · 9,300+ clients · 4.9 rating */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="mx-auto mt-12 grid max-w-3xl grid-cols-2 gap-3 sm:grid-cols-4"
+          className="mx-auto mt-12 grid max-w-3xl grid-cols-3 gap-3"
         >
           {[
-            { value: totalServices || 60, suffix: "+", label: t("hero.stat1"), decimals: 0 },
             { value: 18450, suffix: "+", label: t("hero.stat2"), decimals: 0 },
             { value: 9300, suffix: "+", label: t("hero.stat3"), decimals: 0 },
             { value: 4.9, suffix: "★", label: t("hero.stat4"), decimals: 1 },
@@ -138,7 +135,7 @@ export function Hero() {
       </div>
 
       {/* platform marquee */}
-      <div className="relative mt-14 overflow-hidden py-2 [mask-image:linear-gradient(90deg,transparent,black 12%,black 88%,transparent)]">
+      <div className="relative mt-14 overflow-hidden py-2 [mask-image:linear-gradient(90deg,transparent,black_12%,black_88%,transparent)]">
         <div className="animate-marquee flex w-max gap-3">
           {[...platforms, ...platforms].map((p, i) => (
             <div key={`${p.id}-${i}`} className="glass flex items-center gap-2 rounded-full px-4 py-2">
@@ -516,8 +513,19 @@ export function Configurator({
                   </div>
                 ) : null}
 
-                {/* price + buy */}
-                <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-acc-1/25 bg-gradient-to-r from-[color-mix(in_oklab,var(--acc-1)_10%,transparent)] to-[color-mix(in_oklab,var(--acc-2)_10%,transparent)] p-4">
+                {/* mandatory drop disclaimer */}
+                <motion.p
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.15 }}
+                  className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/[0.07] px-3.5 py-2.5 text-[11px] font-medium leading-relaxed text-amber-500/95"
+                >
+                  <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+                  {t("shop.dropNote")}
+                </motion.p>
+
+                {/* floating checkout — sticky glass total + buy */}
+                <div className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-acc-1/25 bg-gradient-to-r from-[color-mix(in_oklab,var(--acc-1)_10%,transparent)] to-[color-mix(in_oklab,var(--acc-2)_10%,transparent)] p-4 shadow-[0_18px_50px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       {t("shop.price")}
@@ -591,10 +599,10 @@ export function ShopSection() {
 export function Features() {
   const { t } = useI18n();
   const features = [
-    { icon: <Zap size={20} />, title: t("hero.stat4"), desc: t("hero.sub"), tint: "var(--acc-1)" },
-    { icon: <ShieldCheck size={20} />, title: "100% Safe", desc: "No passwords needed — only public links & game UIDs. Privacy-first delivery.", tint: "var(--acc-2)" },
-    { icon: <Bot size={20} />, title: t("chat.title"), desc: "AI assistant answers pricing & order questions instantly, 24/7.", tint: "var(--acc-3)" },
-    { icon: <BadgePercent size={20} />, title: "Best Rates", desc: "Live USD ⇄ NPR conversion with the lowest prices in Nepal — updated by the store.", tint: "var(--ok)" },
+    { icon: <Zap size={20} />, title: t("features.f1t"), desc: t("features.f1d"), tint: "var(--acc-1)" },
+    { icon: <ShieldCheck size={20} />, title: t("features.f2t"), desc: t("features.f2d"), tint: "var(--acc-2)" },
+    { icon: <Bot size={20} />, title: t("features.f3t"), desc: t("features.f3d"), tint: "var(--acc-3)" },
+    { icon: <BadgePercent size={20} />, title: t("features.f4t"), desc: t("features.f4d"), tint: "var(--ok)" },
   ];
   return (
     <section className="mx-auto max-w-7xl px-4 pb-4 sm:px-6">
@@ -631,7 +639,7 @@ export function HowItWorks() {
   const steps = [
     { icon: <Sparkles size={18} />, title: t("shop.title"), desc: t("shop.sub") },
     { icon: <ShieldCheck size={18} />, title: t("checkout.payMethod"), desc: t("checkout.payFirst") },
-    { icon: <Rocket size={18} />, title: t("hero.stat4"), desc: t("checkout.successMsg") },
+    { icon: <Rocket size={18} />, title: t("how.s3t"), desc: t("checkout.successMsg") },
   ];
   return (
     <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">

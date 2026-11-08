@@ -1,14 +1,18 @@
 "use client";
 
 /* ============================================================
- * EzFameNp — multi-provider authentication.
+ * EzFame — multi-provider authentication with admin approval flow.
  *
- * • Firebase mode (when apiKey/authDomain/appId are configured via
- *   env vars or the Admin ▸ Settings panel): Google OAuth, Apple ID,
- *   Email+Password and Anonymous — full firebase/auth flows.
- * • Local mode (zero-config): guest sessions + local email/password
- *   accounts (salted SHA-256 via WebCrypto) persisted in
- *   localStorage, mirrored to the Realtime Database when possible.
+ * • Firebase mode (strict project config, always initialized):
+ *   Google OAuth, Apple ID, Email+Password. If a provider is not
+ *   enabled on the Firebase project, email auth transparently falls
+ *   back to the built-in local engine so sign-up NEVER breaks.
+ * • Local mode fallback: guest sessions + local email/password
+ *   accounts (salted SHA-256) mirrored to the Realtime Database.
+ *
+ * • Approval flow: every NEW account is stored with status
+ *   "pending" and is blocked from the app until an admin sets it
+ *   to "active". "suspended" users are signed out in real time.
  *
  * Every method returns a result object — never throws.
  * ============================================================ */
@@ -26,7 +30,6 @@ import { initializeApp, getApps, type FirebaseApp } from "firebase/app";
 import {
   getAuth,
   onAuthStateChanged,
-  signInAnonymously,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
@@ -37,17 +40,20 @@ import {
   type Auth,
   type User,
 } from "firebase/auth";
-import { getFirebaseConfig, firebaseAuthConfigured } from "./rtdb";
-import { saveUserProfile } from "./data";
+import { getFirebaseConfig, firebaseAuthConfigured, subscribe } from "./rtdb";
+import { deleteUserProfile, getUserProfile, patchUser, saveUserProfile } from "./data";
+import { useToasts } from "./store";
 import { randomHex, sha256Hex } from "./utils";
 import type { AuthProviderId, UserProfile } from "./types";
 
-const LS_SESSION = "ezfamenp:session";
-const LS_LOCAL_USERS = "ezfamenp:localUsers";
+const LS_SESSION = "ezfame:session";
+const LS_LOCAL_USERS = "ezfame:localUsers";
 
 export interface AuthResult {
   ok: boolean;
   code?: string;
+  /** status of the account after the auth attempt */
+  status?: UserProfile["status"];
 }
 
 interface LocalAccount {
@@ -57,6 +63,7 @@ interface LocalAccount {
   salt: string;
   hash: string;
   role: "user" | "admin";
+  status: UserProfile["status"];
   createdAt: number;
   lastLoginAt: number;
 }
@@ -66,6 +73,8 @@ interface AuthContextValue {
   ready: boolean;
   mode: "firebase" | "local";
   isAdmin: boolean;
+  /** true when the signed-in user may browse the store (guests + active) */
+  canBrowse: boolean;
   signInGoogle: () => Promise<AuthResult>;
   signInApple: () => Promise<AuthResult>;
   signInEmail: (email: string, password: string) => Promise<AuthResult>;
@@ -117,6 +126,20 @@ function validEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
 }
 
+/** Firebase codes that mean "this provider is unavailable" → use local engine. */
+function providerDisabledCode(code?: string): boolean {
+  return [
+    "auth/operation-not-allowed",
+    "auth/configuration-not-found",
+    "auth/invalid-api-key",
+    "auth/api-key-not-valid",
+    "auth/api-key-not-valid.-please-pass-a-valid-api-key.",
+    "auth/admin-restricted-operation",
+    "auth/network-request-failed",
+    "auth/internal-error",
+  ].includes(code ?? "");
+}
+
 /* ---------------- provider mapping ---------------- */
 
 function providerOf(fbUser: User): AuthProviderId {
@@ -154,14 +177,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     typeof window !== "undefined" && firebaseAuthConfigured() ? "firebase" : "local",
   );
 
-  /* --- firebase app/auth (only when fully configured) --- */
+  /* --- firebase app/auth (strict project config) --- */
   const fbAuth: Auth | null = useMemo(() => {
     if (!firebaseAuthConfigured()) return null;
     try {
       const cfg = getFirebaseConfig();
-      const existing = getApps().find((a) => a.name === "ezfamenp-auth");
-      const app: FirebaseApp =
-        existing ?? initializeApp({ ...cfg }, "ezfamenp-auth");
+      const existing = getApps().find((a) => a.name === "ezfame-auth");
+      const app: FirebaseApp = existing ?? initializeApp({ ...cfg }, "ezfame-auth");
       return getAuth(app);
     } catch {
       return null;
@@ -180,14 +202,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         (fbUser) => {
           if (cancelled) return;
           if (fbUser) {
-            const profile = profileFromFb(fbUser);
-            setUser(profile);
-            writeSession(profile);
-            // best-effort: mirror profile to the database
-            void saveUserProfile(profile).catch(() => undefined);
+            const base = profileFromFb(fbUser);
+            // merge with the stored profile (status/role) — never clobber admin fields
+            void saveUserProfile(base)
+              .then((merged) => {
+                setUser(merged);
+                writeSession(merged);
+              })
+              .catch(() => {
+                setUser(base);
+                writeSession(base);
+              });
           } else {
             const session = readSession();
-            if (!session || session.provider === "guest") {
+            if (!session || session.provider === "guest" || session.provider === "local") {
               setUser(null);
               writeSession(null);
             }
@@ -208,19 +236,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const ready = !fbAuth || fbReady;
 
-  const finish = useCallback(
-    async (profile: UserProfile): Promise<AuthResult> => {
-      setUser(profile);
-      writeSession(profile);
+  const signOutInternal = useCallback(async () => {
+    if (fbAuth) {
       try {
-        await saveUserProfile(profile);
+        await fbSignOut(fbAuth);
       } catch {
-        /* offline — profile stays local */
+        /* ignore */
       }
-      return { ok: true };
-    },
-    [],
-  );
+    }
+    setUser(null);
+    writeSession(null);
+  }, [fbAuth]);
+
+  /* --- real-time approval / suspension listener --- */
+  const uid = user?.uid ?? null;
+  useEffect(() => {
+    if (!uid) return;
+    const unsub = subscribe<UserProfile>(`csmm/users/${uid}`, (remote) => {
+      if (!remote) {
+        // account deleted by admin → force sign-out
+        void signOutInternal();
+        return;
+      }
+      setUser((prev) => {
+        if (!prev || prev.uid !== remote.uid) return prev;
+        const next: UserProfile = { ...prev, ...remote };
+        try {
+          localStorage.setItem(LS_SESSION, JSON.stringify(next));
+        } catch {
+          /* ignore */
+        }
+        return next;
+      });
+      if (remote.status === "suspended") {
+        void signOutInternal();
+        try {
+          useToasts.getState().push(
+            "error",
+            "Account suspended",
+            "Your access was revoked by an administrator.",
+          );
+        } catch {
+          /* ignore */
+        }
+      }
+    });
+    return () => {
+      try {
+        unsub();
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [uid, signOutInternal]);
+
+  const finish = useCallback(async (profile: UserProfile): Promise<AuthResult> => {
+    let merged = profile;
+    try {
+      merged = await saveUserProfile(profile);
+    } catch {
+      /* offline — profile stays local */
+    }
+    setUser(merged);
+    writeSession(merged);
+    return { ok: true, status: merged.status };
+  }, []);
 
   const err = (e: unknown): AuthResult => {
     const code =
@@ -255,6 +335,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [fbAuth, finish]);
 
+  const localProfileOf = (acc: LocalAccount): UserProfile => ({
+    uid: acc.uid,
+    name: acc.name,
+    email: acc.email,
+    provider: "local",
+    role: acc.role,
+    status: acc.status,
+    createdAt: acc.createdAt,
+    lastLoginAt: acc.lastLoginAt,
+  });
+
   const signInEmail = useCallback(
     async (email: string, password: string): Promise<AuthResult> => {
       const mail = email.trim().toLowerCase();
@@ -266,7 +357,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const cred = await signInWithEmailAndPassword(fbAuth, mail, password);
           return await finish(profileFromFb(cred.user));
         } catch (e) {
-          return err(e);
+          const res = err(e);
+          if (!providerDisabledCode(res.code)) return res;
+          // provider disabled → transparent local fallback
         }
       }
 
@@ -278,17 +371,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const hash = await sha256Hex(`${acc.salt}:${password}`);
         if (hash !== acc.hash) return { ok: false, code: "auth/wrong-password" };
         acc.lastLoginAt = Date.now();
+        if (!acc.status) acc.status = "active"; // grandfathered local accounts
         users[mail] = acc;
         writeLocalUsers(users);
-        return await finish({
-          uid: acc.uid,
-          name: acc.name,
-          email: acc.email,
-          provider: "local",
-          role: acc.role,
-          createdAt: acc.createdAt,
-          lastLoginAt: acc.lastLoginAt,
-        });
+        return await finish(localProfileOf(acc));
       } catch {
         return { ok: false, code: "auth/unknown" };
       }
@@ -311,9 +397,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch {
             /* non-fatal */
           }
+          // new accounts are stored as "pending" by saveUserProfile
           return await finish({ ...profileFromFb(cred.user), name: displayName });
         } catch (e) {
-          return err(e);
+          const res = err(e);
+          if (res.code === "auth/email-already-in-use") return res;
+          if (!providerDisabledCode(res.code)) return res;
+          // provider disabled → transparent local fallback
         }
       }
 
@@ -330,20 +420,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           salt,
           hash,
           role: "user",
+          status: "pending", // approval required before browsing
           createdAt: Date.now(),
           lastLoginAt: Date.now(),
         };
         users[mail] = acc;
         writeLocalUsers(users);
-        return await finish({
-          uid: acc.uid,
-          name: acc.name,
-          email: acc.email,
-          provider: "local",
-          role: acc.role,
-          createdAt: acc.createdAt,
-          lastLoginAt: acc.lastLoginAt,
-        });
+        return await finish(localProfileOf(acc));
       } catch {
         return { ok: false, code: "auth/unknown" };
       }
@@ -357,31 +440,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: "Guest",
       provider: "guest",
       role: "user",
+      status: "active",
       createdAt: Date.now(),
       lastLoginAt: Date.now(),
     };
-    void finish(profile);
-    return { ok: true };
-  }, [finish]);
+    // guests stay device-local by design (no DB record → nothing to approve)
+    setUser(profile);
+    writeSession(profile);
+    return { ok: true, status: profile.status };
+  }, []);
 
   const signOutUser = useCallback(async () => {
-    if (fbAuth) {
-      try {
-        await fbSignOut(fbAuth);
-      } catch {
-        /* ignore */
-      }
+    const session = readSession();
+    // best-effort: persist lastLoginAt before leaving
+    if (session && session.provider !== "guest") {
+      void patchUser(session.uid, {}).catch(() => undefined);
     }
-    setUser(null);
-    writeSession(null);
-  }, [fbAuth]);
+    await signOutInternal();
+  }, [signOutInternal]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
       ready,
       mode,
-      isAdmin: user?.role === "admin",
+      isAdmin: user?.role === "admin" && user?.status !== "suspended",
+      canBrowse:
+        !user || user.provider === "guest" || !user.status || user.status === "active",
       signInGoogle,
       signInApple,
       signInEmail,
@@ -401,15 +486,20 @@ export function useAuth(): AuthContextValue {
   return ctx;
 }
 
-/** promote a locally-logged-in user to admin (used by the admin gate) */
-export function elevateLocalAdmin() {
+/** admin-panel helper: remove a user account completely */
+export async function adminDeleteUser(uid: string): Promise<boolean> {
   try {
-    const session = readSession();
-    if (session) {
-      const next = { ...session, role: "admin" as const };
-      writeSession(next);
-    }
+    return await deleteUserProfile(uid);
   } catch {
-    /* ignore */
+    return false;
+  }
+}
+
+/** admin-panel helper: read the authoritative DB profile for a uid */
+export async function fetchDbProfile(uid: string): Promise<UserProfile | null> {
+  try {
+    return await getUserProfile(uid);
+  } catch {
+    return null;
   }
 }

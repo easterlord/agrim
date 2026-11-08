@@ -1,21 +1,43 @@
 /* ============================================================
- * EzFameNp — Default catalog & settings (used to seed Firebase
+ * EzFame — Default catalog & settings (used to seed Firebase
  * RTDB on first run and as an offline fallback cache).
  * ============================================================ */
 
-import type { Platform, Settings } from "./types";
+import type { FirebaseClientConfig, Platform, Settings } from "./types";
 
-export const DEFAULT_DB_URL =
-  "https://cipher-dump-default-rtdb.asia-southeast1.firebasedatabase.app";
+/**
+ * Exact Firebase web configuration for the EzFame project.
+ * Initialized strictly with these values — env vars or the admin
+ * panel may only OVERRIDE them, never partially merge.
+ */
+export const DEFAULT_FIREBASE_CONFIG: FirebaseClientConfig = {
+  apiKey: "AIzaSyCE9zM7OrYpe6JjRi_6Jrh1iLR-Vs9CEWs",
+  authDomain: "ezfamenp.firebaseapp.com",
+  databaseURL: "https://ezfamenp-default-rtdb.firebaseio.com",
+  projectId: "ezfamenp",
+  storageBucket: "ezfamenp.firebasestorage.app",
+  messagingSenderId: "400639031140",
+  appId: "1:400639031140:web:b419a71bb735801f882c71",
+  measurementId: "G-44H6GEF9W3",
+};
 
-/** Default admin credentials — changeable in Admin ▸ Settings. */
-export const DEFAULT_ADMIN_USERNAME = "ramesh";
-/** sha256("ramesh") */
-export const DEFAULT_ADMIN_USER_HASH =
-  "49e60a7c53c51ba018595353811cefaeb20b5a27d2567fdce469cb1e77fc2312";
+/** Best-guess RTDB endpoints probed at runtime (first reachable one wins). */
+export const RTDB_URL_CANDIDATES = [
+  "https://ezfamenp-default-rtdb.firebaseio.com",
+  "https://ezfamenp-default-rtdb.asia-southeast1.firebasedatabase.app",
+  "https://cipher-dump-default-rtdb.asia-southeast1.firebasedatabase.app",
+];
+
+export const DEFAULT_DB_URL = RTDB_URL_CANDIDATES[0];
+
+/** Master admin credentials — changeable in Admin ▸ Settings. */
+export const DEFAULT_ADMIN_USERNAME = "agrim";
 /** sha256("agrim") */
-export const DEFAULT_ADMIN_PASS_HASH =
+export const DEFAULT_ADMIN_USER_HASH =
   "22826098872362e4f91b09da2d5439386830842e74df2f5fa8c0bd6ab9b5b2a4";
+/** sha256("ramesh") */
+export const DEFAULT_ADMIN_PASS_HASH =
+  "49e60a7c53c51ba018595353811cefaeb20b5a27d2567fdce469cb1e77fc2312";
 
 export const DEFAULT_EXCHANGE_RATE = 133.5;
 
@@ -343,12 +365,12 @@ export const DEFAULT_CATALOG: Platform[] = [
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
-  siteName: "EzFameNp",
+  siteName: "EzFame",
   tagline: "SMM & Game Top-Up Superstore",
   exchangeRate: DEFAULT_EXCHANGE_RATE,
   payments: {
     crypto: {
-      enabled: true,
+      enabled: false,
       wallets: [
         {
           id: "usdt-trc20",
@@ -366,7 +388,7 @@ export const DEFAULT_SETTINGS: Settings = {
     },
     esewa: {
       enabled: true,
-      accountName: "EzFameNp Store",
+      accountName: "EzFame Store",
       accountNumber: "9801234567",
       qrUrl: "",
       instructions:
@@ -374,7 +396,7 @@ export const DEFAULT_SETTINGS: Settings = {
     },
     khalti: {
       enabled: true,
-      accountName: "EzFameNp Store",
+      accountName: "EzFame Store",
       accountNumber: "9812345678",
       qrUrl: "",
       instructions:
@@ -382,7 +404,7 @@ export const DEFAULT_SETTINGS: Settings = {
     },
     bank: {
       enabled: true,
-      accountName: "EzFameNp Traders Pvt. Ltd.",
+      accountName: "EzFame Traders Pvt. Ltd.",
       accountNumber: "0123 4567 8901 (NIC Asia Bank)",
       qrUrl: "",
       instructions:
@@ -395,7 +417,7 @@ export const DEFAULT_SETTINGS: Settings = {
     welcome:
       "Namaste! I'm EzFame AI. Ask me about prices, delivery time, payments or track your order (send your ORD-XXXXXX id).",
     systemPrompt:
-      "You are EzFame AI, the friendly support assistant for EzFameNp — an SMM & game top-up store for Nepal. Answer in the user's language (English/Nepali/Hindi). Be short, helpful and factual. Use the store context provided to answer pricing, payment and order questions.",
+      "You are EzFame AI, the friendly support assistant for EzFame — an SMM & game top-up store for Nepal. Answer in the user's language (English/Nepali/Hindi). Be short, helpful and factual. Use the store context provided to answer pricing, payment and order questions.",
     faqs: [
       {
         id: "faq-1",
@@ -429,10 +451,10 @@ export const DEFAULT_SETTINGS: Settings = {
     model: "gpt-4o-mini",
   },
   social: {
-    telegram: "https://t.me/ezfamenp_support",
+    telegram: "https://t.me/ezfame_support",
     whatsapp: "https://wa.me/9779812345678",
-    email: "support@ezfamenp.com",
-    instagram: "https://instagram.com/ezfamenp",
+    email: "support@ezfame.com",
+    instagram: "https://instagram.com/ezfame",
     facebook: "",
     youtube: "",
   },

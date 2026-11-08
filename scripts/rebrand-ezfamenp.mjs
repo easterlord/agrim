@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * EzFameNp rebrand codemod (idempotent).
+ * EzFame rebrand codemod (idempotent).
  * Applies ordered, exact-string replacements across first-party files and
  * prints a per-pattern hit report. Re-running after a full migration = 0 hits.
  */
@@ -11,13 +11,13 @@ const ROOT = "/home/z/my-project";
 
 // ordered — longest / most specific first where overlapping
 const REPLACEMENTS = [
-  ["EzfaNep", "EzFameNp"],            // display brand
+  ["EzfaNep", "EzFame"],            // display brand
   ["Ezfa AI", "EzFame AI"],           // assistant persona
   ["EZFA\n", "EZFAME\n"],             // splash mark (page.tsx)
-  ["ezfanep", "ezfamenp"],            // handles, firebase app names, filenames
-  ["ezfa-logo-grad", "ezfamenp-logo-grad"],
-  ["ezfa:", "ezfamenp:"],             // localStorage key namespace
-  ["CipherSMM", "EzFameNp"],          // legacy project name in docs/env
+  ["ezfanep", "ezfame"],            // handles, firebase app names, filenames
+  ["ezfa-logo-grad", "ezfame-logo-grad"],
+  ["ezfa:", "ezfame:"],             // localStorage key namespace
+  ["CipherSMM", "EzFame"],          // legacy project name in docs/env
 ];
 
 // collect first-party text files (never touch node_modules/out/.next/upload)
@@ -30,7 +30,7 @@ const files = raw.split("\n").map((f) => f.trim()).filter(Boolean);
 const pkgIdx = files.indexOf(`${ROOT}/package.json`);
 if (pkgIdx >= 0) files.splice(pkgIdx, 1);
 // this codemod must never rewrite itself
-const selfIdx = files.indexOf(`${ROOT}/scripts/rebrand-ezfamenp.mjs`);
+const selfIdx = files.indexOf(`${ROOT}/scripts/rebrand-ezfame.mjs`);
 if (selfIdx >= 0) files.splice(selfIdx, 1);
 
 const report = {};

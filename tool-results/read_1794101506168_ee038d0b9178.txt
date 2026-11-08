@@ -1,0 +1,662 @@
+     1→"use client";
+     2→
+     3→/* ============================================================
+     4→ * EzFame — hidden admin control center at #/original
+     5→ * (also reachable via /original or ?p=/original).
+     6→ * Protected by username + password (default: ramesh / agrim) or admin role.
+     7→ * ============================================================ */
+     8→
+     9→import { AnimatePresence, motion } from "framer-motion";
+    10→import {
+    11→  BadgeDollarSign,
+    12→  Bot,
+    13→  Clock,
+    14→  Coins,
+    15→  Download,
+    16→  Image as ImageIcon,
+    17→  KeyRound,
+    18→  Link2,
+    19→  Lock,
+    20→  MessageSquare,
+    21→  Package,
+    22→  Plus,
+    23→  RefreshCw,
+    24→  Save,
+    25→  ShieldCheck,
+    26→  ShoppingBag,
+    27→  Trash2,
+    28→  Users,
+    29→  Wallet,
+    30→  X,
+    31→} from "lucide-react";
+    32→import { useEffect, useMemo, useState } from "react";
+    33→import { PlatformIcon } from "@/components/icons";
+    34→import {
+    35→  Field,
+    36→  GlassCard,
+    37→  Modal,
+    38→  AccentButton,
+    39→  QRImage,
+    40→  SafeImage,
+    41→  SectionTitle,
+    42→  Segmented,
+    43→  StatusBadge,
+    44→  TextArea,
+    45→  TextInput,
+    46→  Toggle,
+    47→} from "@/components/ui-kit";
+    48→import { useI18n } from "@/lib/i18n";
+    49→import { useAuth, elevateLocalAdmin } from "@/lib/auth";
+    50→import {
+    51→  deleteServiceType,
+    52→  savePlatform,
+    53→  saveSettingsPatch,
+    54→  saveUserProfile,
+    55→  setOrderStatus,
+    56→  useAllOrders,
+    57→  useCatalog,
+    58→  useSettings,
+    59→  useUsers,
+    60→} from "@/lib/data";
+    61→import { useToasts } from "@/lib/store";
+    62→import { exportLocalData, resetLocalData, saveFirebaseConfigOverride, getFirebaseConfig } from "@/lib/rtdb";
+    63→import { DEFAULT_ADMIN_PASS_HASH, DEFAULT_ADMIN_USER_HASH, DEFAULT_CATALOG, DEFAULT_SETTINGS } from "@/lib/defaults";
+    64→import { set as dbSet } from "@/lib/rtdb";
+    65→import { fileToCompressedDataUrl, sha256Hex, cn, fmtDateTime, fmtNPR, fmtUSD, genId } from "@/lib/utils";
+    66→import type { FaqEntry, LocalPaymentChannel, Order, OrderStatus, Platform, QuickAction, ServiceType, Settings } from "@/lib/types";
+    67→
+    68→const LS_ADMIN_OK = "ezfame:adminok";
+    69→
+    70→type Tab = "dashboard" | "orders" | "services" | "payments" | "chatbot" | "links" | "users" | "settings";
+    71→
+    72→/* ============================== GATE ============================== */
+    73→
+    74→function Gate({ onPass }: { onPass: () => void }) {
+    75→  const { t } = useI18n();
+    76→  const { settings } = useSettings();
+    77→  const [username, setUsername] = useState("");
+    78→  const [password, setPassword] = useState("");
+    79→  const [wrong, setWrong] = useState(false);
+    80→  const [busy, setBusy] = useState(false);
+    81→
+    82→  const submit = async () => {
+    83→    if (!username.trim() || !password) return;
+    84→    setBusy(true);
+    85→    const [userHash, passHash] = await Promise.all([
+    86→      sha256Hex(username.trim().toLowerCase()),
+    87→      sha256Hex(password),
+    88→    ]);
+    89→    const ok =
+    90→      userHash === (settings.adminUserHash || DEFAULT_ADMIN_USER_HASH) &&
+    91→      passHash === (settings.adminPassHash || DEFAULT_ADMIN_PASS_HASH);
+    92→    setBusy(false);
+    93→    if (ok) {
+    94→      try {
+    95→        sessionStorage.setItem(LS_ADMIN_OK, "1");
+    96→      } catch {
+    97→        /* ignore */
+    98→      }
+    99→      elevateLocalAdmin();
+   100→      onPass();
+   101→    } else {
+   102→      setWrong(true);
+   103→      setTimeout(() => setWrong(false), 2200);
+   104→    }
+   105→  };
+   106→
+   107→  return (
+   108→    <section className="mx-auto flex min-h-[70vh] max-w-md items-center px-4 pt-24">
+   109→      <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="w-full">
+   110→        <GlassCard strong className="p-8 text-center">
+   111→          <motion.div
+   112→            animate={wrong ? { x: [0, -10, 10, -6, 6, 0] } : {}}
+   113→            transition={{ duration: 0.4 }}
+   114→            className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl"
+   115→            style={{ background: "linear-gradient(135deg, color-mix(in oklab, var(--acc-1) 22%, transparent), color-mix(in oklab, var(--acc-2) 22%, transparent))" }}
+   116→          >
+   117→            <Lock size={26} className={cn(wrong ? "text-red-400" : "text-acc-1")} />
+   118→          </motion.div>
+   119→          <h1 className="text-xl font-extrabold">{t("admin.gate")}</h1>
+   120→          <p className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-muted-foreground">{t("admin.gateSub")}</p>
+   121→
+   122→          <form
+   123→            className="mt-6 space-y-3"
+   124→            onSubmit={(e) => {
+   125→              e.preventDefault();
+   126→              void submit();
+   127→            }}
+   128→          >
+   129→            <TextInput
+   130→              value={username}
+   131→              onChange={(e) => setUsername(e.target.value)}
+   132→              placeholder={t("admin.username")}
+   133→              className={cn("text-center font-semibold", wrong && "!border-red-500")}
+   134→              autoFocus
+   135→              autoComplete="username"
+   136→            />
+   137→            <TextInput
+   138→              type="password"
+   139→              value={password}
+   140→              onChange={(e) => setPassword(e.target.value)}
+   141→              placeholder={t("admin.password")}
+   142→              className={cn("text-center font-mono tracking-[0.3em]", wrong && "!border-red-500")}
+   143→              autoComplete="current-password"
+   144→            />
+   145→            {wrong ? <p className="text-xs font-bold text-red-400">{t("admin.wrong")}</p> : null}
+   146→            <AccentButton type="submit" className="w-full" size="lg" disabled={busy}>
+   147→              <KeyRound size={16} />
+   148→              {t("admin.enter")}
+   149→            </AccentButton>
+   150→          </form>
+   151→        </GlassCard>
+   152→      </motion.div>
+   153→    </section>
+   154→  );
+   155→}
+   156→
+   157→/* ============================== small editors ============================== */
+   158→
+   159→function SaveBtn({ onClick, busy }: { onClick: () => void; busy?: boolean }) {
+   160→  const { t } = useI18n();
+   161→  return (
+   162→    <AccentButton onClick={onClick} disabled={busy} size="sm">
+   163→      <Save size={13} />
+   164→      {t("common.save")}
+   165→    </AccentButton>
+   166→  );
+   167→}
+   168→
+   169→/* ============================== DASHBOARD ============================== */
+   170→
+   171→function Dashboard({ orders }: { orders: Order[] }) {
+   172→  const { t } = useI18n();
+   173→  const rate = useSettings().settings.exchangeRate;
+   174→
+   175→  const stats = useMemo(() => {
+   176→    const valid = orders.filter((o) => o.status !== "rejected" && o.status !== "cancelled");
+   177→    return {
+   178→      total: orders.length,
+   179→      pending: orders.filter((o) => o.status === "pending").length,
+   180→      processing: orders.filter((o) => o.status === "processing").length,
+   181→      completed: orders.filter((o) => o.status === "completed").length,
+   182→      revUSD: valid.reduce((s, o) => s + (o.totalUSD || 0), 0),
+   183→      revNPR: valid.reduce((s, o) => s + (o.totalNPR || 0), 0),
+   184→    };
+   185→  }, [orders]);
+   186→
+   187→  const cards = [
+   188→    { label: t("admin.totalOrders"), value: String(stats.total), icon: <ShoppingBag size={16} />, tint: "var(--acc-1)" },
+   189→    { label: t("orders.pending"), value: String(stats.pending), icon: <Clock size={16} />, tint: "#f59e0b" },
+   190→    { label: t("orders.completed"), value: String(stats.completed), icon: <ShieldCheck size={16} />, tint: "var(--ok)" },
+   191→    { label: t("admin.revenue"), value: fmtUSD(stats.revUSD), icon: <Coins size={16} />, tint: "var(--acc-2)" },
+   192→    { label: "Revenue (NPR)", value: fmtNPR(stats.revNPR), icon: <BadgeDollarSign size={16} />, tint: "var(--acc-3)" },
+   193→  ];
+   194→
+   195→  return (
+   196→    <div className="space-y-5">
+   197→      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+   198→        {cards.map((c, i) => (
+   199→          <motion.div key={c.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
+   200→            <GlassCard className="p-4" hover>
+   201→              <span className="flex h-8 w-8 items-center justify-center rounded-lg" style={{ color: c.tint, background: `color-mix(in oklab, ${c.tint} 13%, transparent)` }}>
+   202→                {c.icon}
+   203→              </span>
+   204→              <p className="mt-2.5 font-[family-name:var(--f-display)] text-xl font-extrabold">{c.value}</p>
+   205→              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{c.label}</p>
+   206→            </GlassCard>
+   207→          </motion.div>
+   208→        ))}
+   209→      </div>
+   210→
+   211→      <GlassCard className="p-5">
+   212→        <h3 className="mb-3 text-sm font-bold uppercase tracking-wider text-muted-foreground">{t("orders.title")} — {t("common.new")}</h3>
+   213→        <div className="space-y-2">
+   214→          {orders.slice(0, 5).map((o) => (
+   215→            <div key={o.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/60 px-3.5 py-2.5 text-sm">
+   216→              <span className="font-mono font-bold text-acc-1">{o.id}</span>
+   217→              <span className="hidden truncate text-muted-foreground sm:block">
+   218→                {o.items?.[0]?.serviceName ?? "—"}
+   219→              </span>
+   220→              <span className="font-mono text-xs">{o.currencyUsed === "NPR" ? fmtNPR(o.totalNPR) : fmtUSD(o.totalUSD)}</span>
+   221→              <StatusBadge status={o.status} label={t(`orders.${o.status === "cancelled" ? "cancelled" : o.status}`)} />
+   222→            </div>
+   223→          ))}
+   224→          {orders.length === 0 ? <p className="py-6 text-center text-xs text-muted-foreground">{t("orders.empty")}</p> : null}
+   225→        </div>
+   226→        <p className="mt-3 text-right text-[11px] text-muted-foreground">1 USD = {rate.toFixed(2)} NPR</p>
+   227→      </GlassCard>
+   228→    </div>
+   229→  );
+   230→}
+   231→
+   232→/* ============================== ORDERS TAB ============================== */
+   233→
+   234→function OrdersAdmin({ orders }: { orders: Order[] }) {
+   235→  const { t } = useI18n();
+   236→  const { push } = useToasts();
+   237→  const [filter, setFilter] = useState<"all" | OrderStatus>("all");
+   238→  const [rejectId, setRejectId] = useState<string | null>(null);
+   239→  const [note, setNote] = useState("");
+   240→
+   241→  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+   242→
+   243→  const act = async (id: string, status: OrderStatus, adminNote?: string) => {
+   244→    const ok = await setOrderStatus(id, status, adminNote);
+   245→    push(ok ? "success" : "info", `${id} → ${status}`, ok ? "✓ synced" : "queued offline");
+   246→  };
+   247→
+   248→  return (
+   249→    <div className="space-y-4">
+   250→      <div className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
+   251→        <Segmented
+   252→          value={filter}
+   253→          onChange={(v) => setFilter(v as "all" | OrderStatus)}
+   254→          options={[
+   255→            { value: "all", label: `All (${orders.length})` },
+   256→            { value: "pending", label: `⏳ ${orders.filter((o) => o.status === "pending").length}` },
+   257→            { value: "processing", label: `⚡ ${orders.filter((o) => o.status === "processing").length}` },
+   258→            { value: "completed", label: `✓ ${orders.filter((o) => o.status === "completed").length}` },
+   259→            { value: "rejected", label: `✕ ${orders.filter((o) => o.status === "rejected").length}` },
+   260→          ]}
+   261→        />
+   262→      </div>
+   263→
+   264→      <div className="space-y-3">
+   265→        <AnimatePresence initial={false}>
+   266→          {filtered.map((o) => (
+   267→            <motion.div key={o.id} layout initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.98 }}>
+   268→              <GlassCard className="p-4">
+   269→                <div className="flex flex-wrap items-center justify-between gap-2">
+   270→                  <div className="flex items-center gap-2.5">
+   271→                    <span className="font-mono text-sm font-extrabold text-acc-1">{o.id}</span>
+   272→                    <StatusBadge status={o.status} label={o.status} />
+   273→                  </div>
+   274→                  <span className="text-[11px] text-muted-foreground">{fmtDateTime(o.createdAt)}</span>
+   275→                </div>
+   276→
+   277→                <div className="mt-2 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+   278→                  <p>
+   279→                    <b className="text-foreground">{o.userName ?? "Guest"}</b>
+   280→                    {o.userEmail ? ` · ${o.userEmail}` : ""}
+   281→                    {o.contact ? ` · ${o.contact}` : ""}
+   282→                  </p>
+   283→                  <p className="sm:text-right">
+   284→                    {o.items?.[0] ? `${o.items[0].platformName} — ${o.items[0].serviceName}` : ""}
+   285→                    {o.items?.[0]?.packageName ? ` (${o.items[0].packageName})` : ""}
+   286→                  </p>
+   287→                  <p className="font-mono">
+   288→                    {o.payment.method}
+   289→                    {o.payment.network ? ` · ${o.payment.network}` : ""}
+   290→                    {o.payment.txId ? ` · Tx: ${o.payment.txId}` : ""}
+   291→                  </p>
+   292→                  <p className="font-mono sm:text-right">
+   293→                    {fmtUSD(o.totalUSD)} / {fmtNPR(o.totalNPR)}
+   294→                  </p>
+   295→                  {o.items?.[0]?.link ? <p className="font-mono sm:col-span-2">🎯 {o.items[0].link}</p> : null}
+   296→                </div>
+   297→
+   298→                {o.payment.receiptUrl ? (
+   299→                  <div className="mt-2">
+   300→                    <SafeImage
+   301→                      src={o.payment.receiptUrl}
+   302→                      alt="receipt"
+   303→                      className="h-28 w-28 rounded-lg border border-border bg-white/80 p-1"
+   304→                    />
+   305→                  </div>
+   306→                ) : null}
+   307→
+   308→                {o.adminNote ? (
+   309→                  <p className="mt-2 rounded-lg bg-muted px-3 py-1.5 text-xs text-muted-foreground">
+   310→                    {t("orders.adminNote")}: {o.adminNote}
+   311→                  </p>
+   312→                ) : null}
+   313→
+   314→                <div className="mt-3 flex flex-wrap gap-2">
+   315→                  {o.status === "pending" ? (
+   316→                    <AccentButton size="sm" onClick={() => void act(o.id, "processing")}>
+   317→                      <ShieldCheck size={13} />
+   318→                      {t("admin.verify")}
+   319→                    </AccentButton>
+   320→                  ) : null}
+   321→                  {o.status === "processing" ? (
+   322→                    <AccentButton size="sm" onClick={() => void act(o.id, "completed")}>
+   323→                      ✓ {t("admin.complete")}
+   324→                    </AccentButton>
+   325→                  ) : null}
+   326→                  {o.status !== "rejected" && o.status !== "completed" ? (
+   327→                    <AccentButton
+   328→                      size="sm"
+   329→                      variant="danger"
+   330→                      onClick={() => {
+   331→                        setNote("");
+   332→                        setRejectId(o.id);
+   333→                      }}
+   334→                    >
+   335→                      <X size={13} />
+   336→                      {t("admin.reject")}
+   337→                    </AccentButton>
+   338→                  ) : null}
+   339→                  {o.status === "rejected" ? (
+   340→                    <AccentButton size="sm" variant="ghost" onClick={() => void act(o.id, "processing")}>
+   341→                      <RefreshCw size={13} />
+   342→                      Reopen
+   343→                    </AccentButton>
+   344→                  ) : null}
+   345→                </div>
+   346→              </GlassCard>
+   347→            </motion.div>
+   348→          ))}
+   349→        </AnimatePresence>
+   350→        {filtered.length === 0 ? (
+   351→          <p className="py-10 text-center text-sm text-muted-foreground">{t("orders.empty")}</p>
+   352→        ) : null}
+   353→      </div>
+   354→
+   355→      <Modal open={!!rejectId} onClose={() => setRejectId(null)} title={t("admin.reject")}>
+   356→        <Field label={`${t("orders.adminNote")} (${t("common.optional")})`}>
+   357→          <TextArea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Wrong TxID / insufficient amount…" />
+   358→        </Field>
+   359→        <div className="mt-4 flex justify-end gap-2">
+   360→          <AccentButton variant="ghost" size="sm" onClick={() => setRejectId(null)}>
+   361→            {t("common.cancel")}
+   362→          </AccentButton>
+   363→          <AccentButton
+   364→            variant="danger"
+   365→            size="sm"
+   366→            onClick={() => {
+   367→              if (rejectId) void act(rejectId, "rejected", note.trim() || undefined);
+   368→              setRejectId(null);
+   369→            }}
+   370→          >
+   371→            {t("admin.reject")}
+   372→          </AccentButton>
+   373→        </div>
+   374→      </Modal>
+   375→    </div>
+   376→  );
+   377→}
+   378→
+   379→/* ============================== SERVICES TAB ============================== */
+   380→
+   381→const emptyService = (): ServiceType => ({
+   382→  id: genId("svc"),
+   383→  name: "",
+   384→  kindLabel: "followers",
+   385→  pricePerKUSD: 1,
+   386→  minQty: 100,
+   387→  maxQty: 100000,
+   388→  stepQty: 50,
+   389→  speed: "0-1 h",
+   390→  active: true,
+   391→  packages: undefined,
+   392→});
+   393→
+   394→function ServiceEditor({
+   395→  initial,
+   396→  platformKind,
+   397→  onSave,
+   398→  onClose,
+   399→}: {
+   400→  initial: ServiceType;
+   401→  platformKind: "social" | "game";
+   402→  onSave: (s: ServiceType) => void;
+   403→  onClose: () => void;
+   404→}) {
+   405→  const { t, lang } = useI18n();
+   406→  const [s, setS] = useState<ServiceType>(() => JSON.parse(JSON.stringify(initial)) as ServiceType);
+   407→  const [mode, setMode] = useState<"qty" | "pkg">(s.packages?.length ? "pkg" : "qty");
+   408→  const upd = (patch: Partial<ServiceType>) => setS((prev) => ({ ...prev, ...patch }));
+   409→
+   410→  return (
+   411→    <div className="space-y-4">
+   412→      <Field label="Service name">
+   413→        <TextInput value={s.name} onChange={(e) => upd({ name: e.target.value })} placeholder="Followers — Real HQ" />
+   414→      </Field>
+   415→      <div className="grid grid-cols-2 gap-3">
+   416→        <Field label="Kind label">
+   417→          <TextInput value={s.kindLabel ?? ""} onChange={(e) => upd({ kindLabel: e.target.value })} placeholder="followers" />
+   418→        </Field>
+   419→        <Field label={t("shop.speed")}>
+   420→          <TextInput value={s.speed ?? ""} onChange={(e) => upd({ speed: e.target.value })} placeholder="0-1 h" />
+   421→        </Field>
+   422→      </div>
+   423→
+   424→      <Segmented
+   425→        value={mode}
+   426→        onChange={(v) => {
+   427→          setMode(v as "qty" | "pkg");
+   428→          upd({ packages: v === "pkg" ? (s.packages?.length ? s.packages : [{ id: genId("pkg"), label: "100", qty: 100, priceUSD: 1 }]) : undefined });
+   429→        }}
+   430→        options={[
+   431→          { value: "qty", label: "Per 1,000 price" },
+   432→          { value: "pkg", label: "Packages" },
+   433→        ]}
+   434→      />
+   435→
+   436→      {mode === "qty" ? (
+   437→        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+   438→          <Field label={t("admin.pricePerK")}>
+   439→            <TextInput type="number" step="0.01" value={s.pricePerKUSD ?? 1} onChange={(e) => upd({ pricePerKUSD: Number(e.target.value) })} />
+   440→          </Field>
+   441→          <Field label={t("shop.min")}>
+   442→            <TextInput type="number" value={s.minQty ?? 100} onChange={(e) => upd({ minQty: Number(e.target.value) })} />
+   443→          </Field>
+   444→          <Field label={t("shop.max")}>
+   445→            <TextInput type="number" value={s.maxQty ?? 100000} onChange={(e) => upd({ maxQty: Number(e.target.value) })} />
+   446→          </Field>
+   447→          <Field label="Step">
+   448→            <TextInput type="number" value={s.stepQty ?? 50} onChange={(e) => upd({ stepQty: Number(e.target.value) })} />
+   449→          </Field>
+   450→        </div>
+   451→      ) : (
+   452→        <div className="space-y-2">
+   453→          {(s.packages ?? []).map((pk, i) => (
+   454→            <div key={pk.id} className="grid grid-cols-[1fr_80px_90px_32px] items-center gap-2">
+   455→              <TextInput
+   456→                value={pk.label}
+   457→                onChange={(e) => {
+   458→                  const pk2 = [...(s.packages ?? [])];
+   459→                  pk2[i] = { ...pk, label: e.target.value };
+   460→                  upd({ packages: pk2 });
+   461→                }}
+   462→                placeholder="325 UC"
+   463→              />
+   464→              <TextInput
+   465→                type="number"
+   466→                value={pk.qty ?? 0}
+   467→                onChange={(e) => {
+   468→                  const pk2 = [...(s.packages ?? [])];
+   469→                  pk2[i] = { ...pk, qty: Number(e.target.value) };
+   470→                  upd({ packages: pk2 });
+   471→                }}
+   472→              />
+   473→              <TextInput
+   474→                type="number"
+   475→                step="0.01"
+   476→                value={pk.priceUSD}
+   477→                onChange={(e) => {
+   478→                  const pk2 = [...(s.packages ?? [])];
+   479→                  pk2[i] = { ...pk, priceUSD: Number(e.target.value) };
+   480→                  upd({ packages: pk2 });
+   481→                }}
+   482→              />
+   483→              <button
+   484→                onClick={() => upd({ packages: (s.packages ?? []).filter((x) => x.id !== pk.id) })}
+   485→                aria-label={t("common.delete")}
+   486→                className="flex h-8 w-8 items-center justify-center rounded-lg text-red-400 hover:bg-red-500/10"
+   487→              >
+   488→                <Trash2 size={14} />
+   489→              </button>
+   490→            </div>
+   491→          ))}
+   492→          <AccentButton
+   493→            size="sm"
+   494→            variant="ghost"
+   495→            onClick={() => upd({ packages: [...(s.packages ?? []), { id: genId("pkg"), label: "", qty: 0, priceUSD: 0 }] })}
+   496→          >
+   497→            <Plus size={13} />
+   498→            {t("admin.addPackage")}
+   499→          </AccentButton>
+   500→        </div>
+   501→      )}
+   502→
+   503→      <div className="grid grid-cols-2 gap-3">
+   504→        <Field label={t("shop.warranty") + " (" + t("common.optional") + ")"}>
+   505→          <TextInput value={s.warranty ?? ""} onChange={(e) => upd({ warranty: e.target.value })} placeholder="30 days refill" />
+   506→        </Field>
+   507→        <div className="flex items-end gap-2 pb-1">
+   508→          <Toggle checked={s.active} onChange={(v) => upd({ active: v })} label={t("admin.active")} />
+   509→          <span className="text-xs font-semibold text-muted-foreground">{s.active ? t("admin.enabled") : t("admin.disabled")}</span>
+   510→        </div>
+   511→      </div>
+   512→      <Field label="Description">
+   513→        <TextArea value={s.description ?? ""} onChange={(e) => upd({ description: e.target.value })} />
+   514→      </Field>
+   515→
+   516→      <div className="flex justify-end gap-2">
+   517→        <AccentButton variant="ghost" size="sm" onClick={onClose}>
+   518→          {t("common.cancel")}
+   519→        </AccentButton>
+   520→        <AccentButton
+   521→          size="sm"
+   522→          onClick={() => {
+   523→            if (!s.name.trim()) return;
+   524→            const payload: ServiceType =
+   525→              mode === "pkg"
+   526→                ? { ...s, packages: (s.packages ?? []).filter((p) => p.label.trim()) }
+   527→                : s;
+   528→            onSave(payload);
+   529→          }}
+   530→        >
+   531→          <Save size={13} />
+   532→          {lang === "en" ? "Save service" : t("common.save")}
+   533→        </AccentButton>
+   534→      </div>
+   535→      <p className="text-[10px] text-muted-foreground">Platform: {platformKind}</p>
+   536→    </div>
+   537→  );
+   538→}
+   539→
+   540→function ServicesAdmin() {
+   541→  const { t } = useI18n();
+   542→  const { push } = useToasts();
+   543→  const { platforms } = useCatalog();
+   544→  const [selId, setSelId] = useState<string | null>(null);
+   545→  const [editing, setEditing] = useState<ServiceType | null>(null);
+   546→  const [platformModal, setPlatformModal] = useState(false);
+   547→  const [np, setNp] = useState({ id: "", name: "", kind: "social" as "social" | "game", color: "#22d3ee", unit: "followers" });
+   548→
+   549→  const sel = platforms.find((p) => p.id === selId) ?? platforms[0] ?? null;
+   550→
+   551→  const persist = async (platform: Platform, msg: string) => {
+   552→    const ok = await savePlatform(platform);
+   553→    push(ok ? "success" : "info", msg, ok ? "✓ synced to cloud" : "saved locally, will sync");
+   554→  };
+   555→
+   556→  return (
+   557→    <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
+   558→      <div className="space-y-2">
+   559→        <div className="no-scrollbar flex gap-2 overflow-x-auto lg:flex-col">
+   560→          {platforms.map((p) => (
+   561→            <button
+   562→              key={p.id}
+   563→              onClick={() => setSelId(p.id)}
+   564→              className={cn(
+   565→                "flex shrink-0 items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all lg:w-full",
+   566→                sel?.id === p.id ? "pill-active bg-accent" : "border-border/70 hover:border-acc-1/35",
+   567→              )}
+   568→            >
+   569→              <PlatformIcon id={p.id} size={16} />
+   570→              <span className="truncate">{p.name}</span>
+   571→              <span className="ml-auto text-[10px] text-muted-foreground">{p.services.length}</span>
+   572→            </button>
+   573→          ))}
+   574→        </div>
+   575→        <AccentButton
+   576→          size="sm"
+   577→          variant="ghost"
+   578→          className="w-full"
+   579→          onClick={() => {
+   580→            setNp({ id: "", name: "", kind: "social", color: "#22d3ee", unit: "followers" });
+   581→            setPlatformModal(true);
+   582→          }}
+   583→        >
+   584→          <Plus size={13} />
+   585→          Add platform
+   586→        </AccentButton>
+   587→      </div>
+   588→
+   589→      <div className="space-y-3">
+   590→        {sel ? (
+   591→          <>
+   592→            <div className="flex items-center justify-between">
+   593→              <h3 className="flex items-center gap-2 text-base font-bold">
+   594→                <PlatformIcon id={sel.id} size={18} />
+   595→                {sel.name}
+   596→              </h3>
+   597→              <AccentButton size="sm" onClick={() => setEditing(emptyService())}>
+   598→                <Plus size={13} />
+   599→                {t("admin.addService")}
+   600→              </AccentButton>
+   601→            </div>
+   602→
+   603→            {sel.services.map((s) => (
+   604→              <GlassCard key={s.id} className="flex items-center justify-between gap-3 p-4">
+   605→                <div className="min-w-0 flex-1">
+   606→                  <p className="truncate text-sm font-bold">{s.name || "(unnamed)"}</p>
+   607→                  <p className="text-[11px] text-muted-foreground">
+   608→                    {s.packages?.length
+   609→                      ? `${s.packages.length} packages · $${Math.min(...s.packages.map((x) => x.priceUSD))}+`
+   610→                      : `$${s.pricePerKUSD ?? 0} /1k · ${s.minQty}–${s.maxQty}`}
+   611→                    {s.speed ? ` · ${s.speed}` : ""}
+   612→                  </p>
+   613→                </div>
+   614→                <Toggle
+   615→                  checked={s.active}
+   616→                  onChange={(v) => {
+   617→                    void persist(
+   618→                      { ...sel, services: sel.services.map((x) => (x.id === s.id ? { ...x, active: v } : x)) },
+   619→                      `${s.name} ${v ? "enabled" : "disabled"}`,
+   620→                    );
+   621→                  }}
+   622→                />
+   623→                <AccentButton size="sm" variant="ghost" onClick={() => setEditing(s)}>
+   624→                  {t("common.edit")}
+   625→                </AccentButton>
+   626→                <button
+   627→                  onClick={() => {
+   628→                    if (confirm(t("admin.confirmDelete"))) {
+   629→                      void deleteServiceType(sel.id, s.id).then(() => push("success", "Deleted", s.name));
+   630→                    }
+   631→                  }}
+   632→                  aria-label={t("common.delete")}
+   633→                  className="flex h-8 w-8 items-center justify-center rounded-lg text-red-400 hover:bg-red-500/10"
+   634→                >
+   635→                  <Trash2 size={15} />
+   636→                </button>
+   637→              </GlassCard>
+   638→            ))}
+   639→          </>
+   640→        ) : null}
+   641→      </div>
+   642→
+   643→      <Modal open={!!editing} onClose={() => setEditing(null)} title={t("admin.addService")} wide>
+   644→        {editing && sel ? (
+   645→          <ServiceEditor
+   646→            initial={editing}
+   647→            platformKind={sel.kind}
+   648→            onClose={() => setEditing(null)}
+   649→            onSave={(svc) => {
+   650→              const exists = sel.services.some((x) => x.id === svc.id);
+   651→              void persist(
+   652→                {
+   653→                  ...sel,
+   654→                  services: exists ? sel.services.map((x) => (x.id === svc.id ? svc : x)) : [svc, ...sel.services],
+   655→                },
+   656→                exists ? "Service updated" : "Service added",
+   657→              );
+   658→              setEditing(null);
+   659→            }}
+   660→          />
+
+[showing lines 1-660 of 1370; use offset=661 with limit to continue reading]
